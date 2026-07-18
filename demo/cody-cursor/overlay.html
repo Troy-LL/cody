@@ -98,6 +98,9 @@
       cursor: pointer;
     }
     .hud button:hover { filter: brightness(1.08); }
+    /* Mouse clicks must not leave a sticky focus ring; keyboard focus still visible */
+    .hud button:focus { outline: none; }
+    .hud button:focus-visible { outline: 2px solid #5dade2; outline-offset: 2px; }
     .hud button.secondary {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.35);
@@ -130,6 +133,22 @@
     .mic-meter span.peak {
       background: #f1c40f;
     }
+    .hud input[type="text"] {
+      width: 220px;
+      padding: 6px 8px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font: inherit;
+    }
+    .hud input[type="text"]::placeholder {
+      color: rgba(255,255,255,0.55);
+    }
+    .hud input[type="text"]:focus {
+      outline: 2px solid #5dade2;
+      outline-offset: 1px;
+    }
     .hud kbd {
       font: inherit;
       padding: 1px 5px;
@@ -148,7 +167,7 @@
     .mock-desktop.hidden { display: none !important; }
     .file {
       position: absolute;
-      width: 96px;
+      width: 84px;
       text-align: center;
       color: var(--cody-ink);
       font-size: 11px;
@@ -156,16 +175,16 @@
       pointer-events: none;
     }
     .file .icon {
-      width: 56px;
-      height: 64px;
-      margin: 0 auto 6px;
+      width: 48px;
+      height: 56px;
+      margin: 0 auto 5px;
       border-radius: 6px;
       background: #fff;
       border: 1px solid #c5d0e0;
       box-shadow: 0 2px 8px rgba(10, 22, 40, 0.08);
       display: grid;
       place-items: center;
-      font-size: 22px;
+      font-size: 20px;
     }
     .file.highlight .icon {
       outline: 3px solid var(--cody-blue);
@@ -191,17 +210,37 @@
 </head>
 <body>
   <div class="mock-desktop" id="mock-desktop" aria-hidden="true">
-    <div class="file" data-id="lazada" style="left: 18%; top: 28%;">
-      <div class="icon">📄</div>
-      receipt_lazada.pdf
+    <div class="file" data-id="lazada" data-keywords="lazada receipt resibo order shopping pdf" style="left: 8%; top: 12%;">
+      <div class="icon">🧾</div>
+      <div class="name">receipt_lazada.pdf</div>
     </div>
-    <div class="file" data-id="shopee" style="left: 42%; top: 36%;">
-      <div class="icon">📄</div>
-      invoice_shopee.pdf
+    <div class="file" data-id="shopee" data-keywords="shopee invoice bill order shopping pdf" style="left: 27%; top: 9%;">
+      <div class="icon">🛒</div>
+      <div class="name">invoice_shopee.pdf</div>
     </div>
-    <div class="file" data-id="notes" style="left: 66%; top: 24%;">
+    <div class="file" data-id="notes" data-keywords="meeting notes minutes standup memo text" style="left: 46%; top: 13%;">
       <div class="icon">📝</div>
-      meeting_notes.txt
+      <div class="name">meeting_notes.txt</div>
+    </div>
+    <div class="file" data-id="budget" data-keywords="budget spreadsheet finance excel money expenses 2026" style="left: 65%; top: 9%;">
+      <div class="icon">📊</div>
+      <div class="name">budget_2026.xlsx</div>
+    </div>
+    <div class="file" data-id="resume" data-keywords="resume cv curriculum vitae job troy application" style="left: 84%; top: 13%;">
+      <div class="icon">📄</div>
+      <div class="name">resume_troy.pdf</div>
+    </div>
+    <div class="file" data-id="boarding" data-keywords="boarding pass flight ticket travel plane airline trip" style="left: 14%; top: 44%;">
+      <div class="icon">✈️</div>
+      <div class="name">boarding_pass.pdf</div>
+    </div>
+    <div class="file" data-id="photo" data-keywords="photo picture image family jpeg png snapshot" style="left: 40%; top: 48%;">
+      <div class="icon">🖼️</div>
+      <div class="name">family_photo.png</div>
+    </div>
+    <div class="file" data-id="contract" data-keywords="contract lease rent agreement doc apartment landlord" style="left: 66%; top: 44%;">
+      <div class="icon">📑</div>
+      <div class="name">rent_contract.docx</div>
     </div>
   </div>
 
@@ -214,15 +253,17 @@
   </div>
 
   <div class="hud" id="hud">
-    <span id="status">Say “where’s Lazada” or use the mic</span>
-    <button type="button" id="btn-mic">🎤 Listen</button>
+    <span id="status">Say “find my boarding pass” or type a command</span>
+    <button type="button" id="btn-mic">🎤 Voice</button>
     <div class="mic-meter" id="mic-meter" aria-hidden="true" title="Mic level">
       <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
-    <button type="button" id="btn-point">Point → Lazada</button>
+    <button type="button" id="btn-point" class="secondary">Point → Lazada</button>
     <button type="button" id="btn-shopee" class="secondary">Point → Shopee</button>
     <button type="button" id="btn-follow" class="secondary">Follow again</button>
-    <span><kbd>1</kbd>/<kbd>2</kbd> · hold <kbd>V</kbd> talk · <kbd>Esc</kbd> follow</span>
+    <input type="text" id="cmd-input" placeholder='type a command, e.g. "find my boarding pass"' autocomplete="off" spellcheck="false" />
+    <button type="button" id="btn-run" class="secondary">Run</button>
+    <span><kbd>1</kbd>/<kbd>2</kbd> · <kbd>V</kbd> mic · <kbd>/</kbd> type · <kbd>Esc</kbd> follow</span>
   </div>
 
   <script>
@@ -283,13 +324,17 @@
         lazada: "I think this is your Lazada receipt.",
         shopee: "Looks like the Shopee invoice.",
         notes: "These are your meeting notes.",
+        budget: "Here's the 2026 budget spreadsheet.",
+        resume: "This should be Troy's resume.",
+        boarding: "Your boarding pass is right here.",
+        photo: "Found the family photo.",
+        contract: "This looks like the rent contract.",
       };
 
-      const VOICE_RULES = [
-        { re: /\b(lazada|lazad[ao]?|resibo.*lazada|receipt.*lazada)\b/i, id: "lazada" },
-        { re: /\b(shopee|shope|invoice.*shopee)\b/i, id: "shopee" },
-        { re: /\b(notes?|meeting)\b/i, id: "notes" },
-      ];
+      // "resume" is deliberately NOT here — it collides with resume_troy.pdf.
+      // Bare "resume" / "resume following" is special-cased in handleCommand.
+      const FOLLOW_INTENT = /\b(follow( me)?|stop( pointing)?|never ?mind|cancel|go back)\b/;
+      const DEFAULT_STATUS = "Say “find my boarding pass” or type a command";
 
       let mode = "follow";
       let mouse = { x: innerWidth * 0.45, y: innerHeight * 0.4 };
@@ -299,7 +344,8 @@
       let animStart = 0;
       let animFrom = { x: 0, y: 0 };
       let animTo = { x: 0, y: 0 };
-      let listening = false;
+      let micOn = false; // user intent: keep the mic session alive
+      let listening = false; // recognition is actually running right now
       let recognition = null;
       let micStream = null;
       let audioCtx = null;
@@ -357,6 +403,11 @@
         document.querySelectorAll(".file.highlight").forEach((n) => n.classList.remove("highlight"));
       }
 
+      function fileName(id) {
+        const node = document.querySelector('.file[data-id="' + id + '"] .name');
+        return node ? node.textContent.trim() : id;
+      }
+
       function pointAt(id, thought) {
         if (hideMock) {
           status.textContent = "Mock desktop hidden — open without ?nomock=1";
@@ -380,9 +431,9 @@
         };
         animStart = performance.now();
         target = dest;
-        const line = thought || THOUGHTS[id] || ("I think this is " + id + ".");
+        const line = thought || THOUGHTS[id] || ("I think this is " + fileName(id) + ".");
         showCaption(line);
-        status.textContent = "Pointing at " + id + "…";
+        status.textContent = "Pointing at " + fileName(id) + "…";
         try {
           parent.postMessage({ type: "cody-status", mode: "animating", target: id }, "*");
         } catch (_) {}
@@ -395,37 +446,66 @@
         vel.x = 0;
         vel.y = 0;
         hideCaption();
-        status.textContent = 'Say “where’s Lazada” or use the mic';
+        status.textContent = DEFAULT_STATUS;
         try {
           parent.postMessage({ type: "cody-status", mode: "follow" }, "*");
         } catch (_) {}
       }
 
-      function matchVoice(transcript) {
-        const t = String(transcript || "").trim();
-        if (!t) return null;
-        for (let i = 0; i < VOICE_RULES.length; i++) {
-          if (VOICE_RULES[i].re.test(t)) return VOICE_RULES[i].id;
-        }
-        // Loose: "where's X" / "where is X"
-        const m = t.match(/where'?s?\s+(?:is\s+)?(.+)/i);
-        if (m) {
-          const rest = m[1];
-          for (let i = 0; i < VOICE_RULES.length; i++) {
-            if (VOICE_RULES[i].re.test(rest)) return VOICE_RULES[i].id;
-          }
-        }
-        return null;
+      function speak(text) {
+        if (!("speechSynthesis" in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.rate = 1.05;
+          window.speechSynthesis.speak(u);
+        } catch (_) {}
       }
 
-      function handleHeard(transcript) {
-        status.textContent = "Heard: “" + transcript + "”";
-        const id = matchVoice(transcript);
-        if (!id) {
-          showCaption("I didn't catch a file — try “where’s Lazada”.");
+      /**
+       * Score every .file by how many of its data-keywords + filename words
+       * appear in the transcript; the raw data-id counts double. Best score wins.
+       */
+      function matchFile(text) {
+        let bestId = null;
+        let bestScore = 0;
+        document.querySelectorAll(".file[data-id]").forEach(function (node) {
+          const id = node.getAttribute("data-id");
+          const words = new Set(
+            ((node.getAttribute("data-keywords") || "").toLowerCase() + " " +
+              fileName(id).toLowerCase().replace(/[._-]+/g, " "))
+              .split(/\s+/)
+              .filter(Boolean)
+          );
+          let score = 0;
+          words.forEach(function (w) {
+            if (text.indexOf(w) !== -1) score += 1;
+          });
+          if (text.indexOf(id) !== -1) score += 2;
+          if (score > bestScore) {
+            bestScore = score;
+            bestId = id;
+          }
+        });
+        return bestId;
+      }
+
+      /** Single entry point for voice, the HUD text box, and cody-command postMessage. */
+      function handleCommand(transcript) {
+        const text = String(transcript || "").toLowerCase().trim();
+        if (!text) return;
+        status.textContent = "Heard: “" + text + "”";
+        if (FOLLOW_INTENT.test(text) || /^resume( follow(ing)?)?[.!]?$/.test(text)) {
+          resumeFollow();
           return;
         }
-        showCaption("Okay — looking for " + id + "…");
+        const id = matchFile(text);
+        if (!id) {
+          status.textContent = 'Didn\u2019t catch a file — try "point at the Shopee invoice"';
+          showCaption("I didn't catch a file name.");
+          return;
+        }
+        speak("Found it. Pointing at " + fileName(id) + ".");
         pointAt(id, THOUGHTS[id]);
       }
 
@@ -487,6 +567,7 @@
       }
 
       function startMeter() {
+        if (micStream) return Promise.resolve(); // already running (recognition auto-restart)
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           status.textContent = "Mic meter needs getUserMedia (HTTPS or localhost)";
           return Promise.resolve();
@@ -514,54 +595,62 @@
         if (!SR) {
           btnMic.disabled = true;
           btnMic.title = "Speech recognition not supported in this browser";
-          status.textContent = "Voice needs Chrome/Edge — use buttons or 1/2";
+          status.textContent = "No voice support here — type a command instead";
           return;
         }
         recognition = new SR();
-        recognition.lang = "en-PH";
+        recognition.lang = "en-US";
         recognition.interimResults = false;
         recognition.maxAlternatives = 3;
-        recognition.continuous = false;
+        recognition.continuous = true;
 
         recognition.onstart = function () {
           listening = true;
           btnMic.classList.add("listening");
-          btnMic.textContent = "Listening…";
-          status.textContent = "Listening — say “where’s Lazada”";
+          btnMic.textContent = "🎤 Listening…";
+          status.textContent = "Listening… say “find my boarding pass”";
           startMeter();
         };
         recognition.onend = function () {
           listening = false;
+          if (micOn) {
+            // Continuous sessions still end on silence/network hiccups — restart
+            try {
+              recognition.start();
+              return;
+            } catch (_) {}
+          }
+          micOn = false;
           btnMic.classList.remove("listening");
-          btnMic.textContent = "🎤 Listen";
+          btnMic.textContent = "🎤 Voice";
           stopMeter();
+          if (status.textContent.indexOf("Listening") === 0) status.textContent = DEFAULT_STATUS;
         };
         recognition.onerror = function (ev) {
-          listening = false;
-          btnMic.classList.remove("listening");
-          btnMic.textContent = "🎤 Listen";
-          stopMeter();
-          status.textContent = "Mic error: " + (ev.error || "unknown");
+          const err = ev.error || "unknown";
+          // Benign errors — onend fires next and auto-restarts while micOn
+          if (err === "no-speech" || err === "aborted") return;
+          micOn = false;
+          status.textContent = "Mic error: " + err + " — type a command instead";
         };
         recognition.onresult = function (ev) {
+          // Continuous mode appends results; only act on the newest one
+          const last = ev.results[ev.results.length - 1];
           let best = "";
-          for (let i = 0; i < ev.results.length; i++) {
-            for (let j = 0; j < ev.results[i].length; j++) {
-              const alt = ev.results[i][j].transcript;
-              if (alt && alt.length > best.length) best = alt;
-            }
+          for (let j = 0; j < last.length; j++) {
+            const alt = last[j].transcript;
+            if (alt && alt.length > best.length) best = alt;
           }
-          handleHeard(best);
+          if (best) handleCommand(best);
         };
       }
 
-      let vHeld = false;
-
       function startMic() {
         if (!recognition) {
-          status.textContent = "Speech recognition unavailable";
+          status.textContent = "Speech recognition unavailable — type a command instead";
           return;
         }
+        micOn = true;
         if (listening) return;
         try {
           recognition.start();
@@ -571,17 +660,16 @@
       }
 
       function stopMic() {
-        if (!recognition) return;
-        if (!listening) {
+        micOn = false;
+        if (!recognition || !listening) {
           stopMeter();
           return;
         }
         try { recognition.stop(); } catch (_) {}
-        stopMeter();
       }
 
       function toggleMic() {
-        if (listening) stopMic();
+        if (micOn || listening) stopMic();
         else startMic();
       }
 
@@ -614,7 +702,8 @@
           }
         }
         if (data.type === "cody-follow") resumeFollow();
-        if (data.type === "cody-heard" && data.transcript) handleHeard(data.transcript);
+        if (data.type === "cody-heard" && data.transcript) handleCommand(data.transcript);
+        if (data.type === "cody-command" && data.text) handleCommand(data.text);
       });
 
       function tick(now) {
@@ -655,42 +744,55 @@
       setupSpeech();
       requestAnimationFrame(tick);
 
-      document.getElementById("btn-point").onclick = function () {
+      const cmdInput = document.getElementById("cmd-input");
+      const btnRun = document.getElementById("btn-run");
+
+      function runTypedCommand() {
+        const text = cmdInput.value;
+        cmdInput.value = "";
+        handleCommand(text);
+      }
+
+      document.getElementById("btn-point").onclick = function (e) {
+        e.currentTarget.blur();
         pointAt("lazada");
       };
-      document.getElementById("btn-shopee").onclick = function () {
+      document.getElementById("btn-shopee").onclick = function (e) {
+        e.currentTarget.blur();
         pointAt("shopee");
       };
-      document.getElementById("btn-follow").onclick = resumeFollow;
+      document.getElementById("btn-follow").onclick = function (e) {
+        e.currentTarget.blur();
+        resumeFollow();
+      };
       btnMic.onclick = function (e) {
         e.preventDefault();
         toggleMic();
       };
+      btnRun.onclick = function (e) {
+        e.currentTarget.blur();
+        runTypedCommand();
+      };
+      cmdInput.addEventListener("keydown", function (e) {
+        // Keep single-key shortcuts (1/2/v//) from firing while typing
+        e.stopPropagation();
+        if (e.key === "Enter") runTypedCommand();
+        if (e.key === "Escape") cmdInput.blur();
+      });
 
-      // V = hold-to-talk (ignore key-repeat). Button still toggles.
       window.addEventListener("keydown", function (e) {
         if (e.repeat) return;
+        if (document.activeElement === cmdInput) return;
         if (e.key === "1") pointAt("lazada");
         if (e.key === "2") pointAt("shopee");
         if (e.key === "Escape") resumeFollow();
         if (e.key === "v" || e.key === "V") {
           e.preventDefault();
-          if (vHeld) return;
-          vHeld = true;
-          startMic();
+          toggleMic();
         }
-      });
-      window.addEventListener("keyup", function (e) {
-        if (e.key === "v" || e.key === "V") {
+        if (e.key === "/") {
           e.preventDefault();
-          vHeld = false;
-          stopMic();
-        }
-      });
-      window.addEventListener("blur", function () {
-        if (vHeld) {
-          vHeld = false;
-          stopMic();
+          cmdInput.focus();
         }
       });
 
