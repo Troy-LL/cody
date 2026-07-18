@@ -1,0 +1,59 @@
+[
+  {
+    "raw_query": "yung resibo ko sa Lazada last week",
+    "description": "a receipt from Lazada",
+    "time_hint": {
+      "type": "relative",
+      "value": "last_week",
+      "resolved_range": ["2026-07-06T00:00:00Z", "2026-07-12T23:59:59Z"]
+    },
+    "type_hint": null,
+    "language_mix": "taglish"
+  },
+  {
+    "raw_query": "yung PDF ng Shopee invoice",
+    "description": "a Shopee invoice PDF",
+    "time_hint": null,
+    "type_hint": "pdf",
+    "language_mix": "taglish"
+  },
+  {
+    "raw_query": "meeting notes from this week",
+    "description": "meeting notes",
+    "time_hint": {
+      "type": "relative",
+      "value": "this_week",
+      "resolved_range": ["2026-07-13T00:00:00Z", "2026-07-19T23:59:59Z"]
+    },
+    "type_hint": null,
+    "language_mix": "en"
+  },
+  {
+    "raw_query": "yung todo list ko",
+    "description": "todo list",
+    "time_hint": null,
+    "type_hint": null,
+    "language_mix": "taglish"
+  },
+  {
+    "raw_query": "family photo on the desktop",
+    "description": "a family photo",
+    "time_hint": null,
+    "type_hint": "image",
+    "language_mix": "en"
+  },
+  {
+    "raw_query": "budget spreadsheet for Q2",
+    "description": "Q2 budget spreadsheet",
+    "time_hint": null,
+    "type_hint": "xlsx",
+    "language_mix": "en"
+  },
+  {
+    "raw_query": "yung screenshot ng Lazada",
+    "description": "a Lazada screenshot",
+    "time_hint": null,
+    "type_hint": "image",
+    "language_mix": "taglish"
+  }
+]

@@ -14,6 +14,6 @@
 | Person 6 | TBD | [`reveal/`](reveal/README.md), [`voice/`](voice/README.md) | `feature/reveal`, `feature/voice` | [`reveal`](openspec/specs/reveal/spec.md), [`voice`](openspec/specs/voice/spec.md) | §6.5 + §6.6 | OS select works; templated TTS speaks EN/TL |
 | Stretch | Unassigned | [`overlay-stretch/`](overlay-stretch/README.md) | `feature/overlay-stretch` | [`overlay-stretch`](openspec/specs/overlay-stretch/spec.md) | §6.8 | Overlay lands on icon by 2:00 or drop |
 
-**Locked for this sprint:** Windows demo machine · top-level folder scan · Person 6 owns reveal + voice · Troy owns orchestration only · Python/PySide6 arrives in Task 2.
+**Locked for this sprint:** Windows demo machine · top-level folder scan · Person 6 owns reveal + voice · Troy owns orchestration only · Contracts/fixtures + PySide shell: `pyproject.toml`, `contracts/`, `fixtures/`, `python -m orchestration.main --demo-stubs`.
 
 **Team workflow OpenSpec:** [`openspec/specs/team-workflow/spec.md`](openspec/specs/team-workflow/spec.md).
