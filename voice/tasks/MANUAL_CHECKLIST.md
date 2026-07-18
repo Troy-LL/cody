@@ -2,18 +2,19 @@
 
 Run on the Windows demo machine. Unit tests do not replace these.
 
-## Reveal (`feature/reveal`)
+## Reveal (`feature/reveal` — already merged)
 
 - [ ] Existing file path opens Explorer with the file selected
 - [ ] Path containing spaces still selects correctly
 - [ ] Missing / deleted path returns `false` and does not crash the shell
 - [ ] `python -m pytest reveal/tests -q` green
 
-## Voice (`feature/voice`)
+## Voice (`feature/voice` — OpenVoice)
 
-- [ ] Copy `config.example.json` → `config.local.json`, set real voice ids, set `ELEVENLABS_API_KEY`
-- [ ] `python voice/scripts/smoke_tl.py` — Tagalog ear-check (swap model/voice once if unclear)
+- [ ] Install OpenVoice + MeloTTS per `voice/README.md`
+- [ ] Copy `config.example.json` → `config.local.json` (`tone_convert: false` for first smoke)
+- [ ] `python voice/scripts/smoke_tl.py` — Tagalog text via EN Melo speaker (ear-check)
 - [ ] `speak("receipt_lazada.pdf", "en")` plays English template
 - [ ] `enabled: false` → returns `true`, no audio
-- [ ] Bad / missing API key → returns `false`, reveal still works in the app
+- [ ] Optional: download checkpoints + set `tone_convert: true` + reference wav
 - [ ] `python -m pytest voice/tests -q` green

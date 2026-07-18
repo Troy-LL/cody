@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 
 from voice.config import (
-    DEFAULT_BASE_URL,
-    DEFAULT_MODEL_ID,
+    DEFAULT_PROVIDER,
     ConfigLoadError,
     ConfigMissing,
-    is_usable_voice_id,
+    is_usable_reference,
+    is_usable_speaker,
     load_voice_config,
 )
 
@@ -34,24 +34,36 @@ def test_malformed_json_raises(tmp_path: Path) -> None:
         load_voice_config(bad, environ={})
 
 
-def test_defaults_base_url_and_model(tmp_path: Path) -> None:
+def test_defaults_provider_and_device(tmp_path: Path) -> None:
     cfg_path = _write_cfg(
         tmp_path / "config.local.json",
         {
             "enabled": True,
-            "provider": "elevenlabs",
-            "routing": {"en": {"voice_id": "abc"}},
+            "routing": {"en": {"speaker": "EN-US"}},
         },
     )
-    cfg = load_voice_config(cfg_path, environ={"ELEVENLABS_API_KEY": "secret"})
+    cfg = load_voice_config(cfg_path, environ={})
     assert not isinstance(cfg, ConfigMissing)
-    assert cfg["base_url"] == DEFAULT_BASE_URL
-    assert cfg["model_id"] == DEFAULT_MODEL_ID
-    assert cfg["api_key"] == "secret"
+    assert cfg["provider"] == DEFAULT_PROVIDER
+    assert cfg["device"] == "cpu"
+    assert cfg["tone_convert"] is True
+    assert cfg["routing"]["en"]["speaker"] == "EN-US"
 
 
-def test_placeholder_voice_id_detection() -> None:
-    assert is_usable_voice_id("real-voice-123")
-    assert not is_usable_voice_id("")
-    assert not is_usable_voice_id("<tl_voice_id>")
-    assert not is_usable_voice_id("voice_id")
+def test_legacy_voice_id_maps_to_speaker(tmp_path: Path) -> None:
+    cfg_path = _write_cfg(
+        tmp_path / "config.local.json",
+        {"enabled": True, "routing": {"en": {"voice_id": "EN-US"}}},
+    )
+    cfg = load_voice_config(cfg_path, environ={})
+    assert not isinstance(cfg, ConfigMissing)
+    assert cfg["routing"]["en"]["speaker"] == "EN-US"
+
+
+def test_speaker_and_reference_helpers(tmp_path: Path) -> None:
+    wav = tmp_path / "ref.wav"
+    wav.write_bytes(b"RIFF")
+    assert is_usable_speaker("EN-US")
+    assert not is_usable_speaker("<speaker>")
+    assert is_usable_reference(str(wav))
+    assert not is_usable_reference("voice/refs/missing.wav")

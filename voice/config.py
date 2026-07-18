@@ -1,4 +1,4 @@
-"""Load VoiceConfig from local JSON + ELEVENLABS_API_KEY env."""
+"""Load VoiceConfig for the local OpenVoice engine."""
 
 from __future__ import annotations
 
@@ -6,22 +6,29 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TypedDict
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://api.elevenlabs.io"
-DEFAULT_MODEL_ID = "eleven_flash_v2_5"
-CONFIG_PATH = Path(__file__).resolve().parent / "config.local.json"
+PACKAGE_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = PACKAGE_DIR / "config.local.json"
+DEFAULT_CHECKPOINTS_DIR = str(PACKAGE_DIR / "checkpoints_v2")
+DEFAULT_DEVICE = "cpu"
+DEFAULT_PROVIDER = "openvoice"
+
+
+class RouteConfig(TypedDict):
+    speaker: str
+    reference_wav: str
 
 
 class VoiceConfig(TypedDict):
     enabled: bool
     provider: str
-    base_url: str
-    model_id: str
-    api_key: str
-    routing: dict[str, dict[str, str]]
+    device: str
+    checkpoints_dir: str
+    tone_convert: bool
+    routing: dict[str, RouteConfig]
 
 
 class ConfigLoadError(Exception):
@@ -32,18 +39,23 @@ class ConfigMissing:
     """Sentinel: no local config file (treat as disabled)."""
 
 
-def _is_placeholder_voice_id(voice_id: str) -> bool:
-    value = voice_id.strip()
-    if not value:
+def _is_placeholder(value: str) -> bool:
+    text = value.strip()
+    if not text:
         return True
-    lower = value.lower()
-    return "<" in value or ">" in value or "voice_id" in lower
+    return "<" in text or ">" in text
 
 
-def is_usable_voice_id(voice_id: str | None) -> bool:
-    if voice_id is None:
+def is_usable_speaker(speaker: str | None) -> bool:
+    if speaker is None:
         return False
-    return not _is_placeholder_voice_id(voice_id)
+    return not _is_placeholder(speaker)
+
+
+def is_usable_reference(path: str | None) -> bool:
+    if path is None or _is_placeholder(path):
+        return False
+    return Path(path).expanduser().is_file()
 
 
 def load_voice_config(
@@ -56,8 +68,8 @@ def load_voice_config(
     Returns ConfigMissing when the file is absent (planned disabled).
     Raises ConfigLoadError when the file exists but is invalid JSON/shape.
     """
+    del environ  # no secrets for local OpenVoice; kept for call-site compatibility
     cfg_path = path if path is not None else CONFIG_PATH
-    env = environ if environ is not None else os.environ
 
     if not cfg_path.is_file():
         return ConfigMissing()
@@ -71,36 +83,38 @@ def load_voice_config(
         raise ConfigLoadError("voice config root must be an object")
 
     enabled = bool(raw.get("enabled", False))
-    provider = str(raw.get("provider", "elevenlabs")).strip()
-    base_url = str(raw.get("base_url") or DEFAULT_BASE_URL).rstrip("/")
-    model_id = str(raw.get("model_id") or DEFAULT_MODEL_ID)
+    provider = str(raw.get("provider", DEFAULT_PROVIDER)).strip()
+    device = str(raw.get("device") or os.environ.get("OPENVOICE_DEVICE") or DEFAULT_DEVICE)
+    checkpoints_dir = str(raw.get("checkpoints_dir") or DEFAULT_CHECKPOINTS_DIR)
+    tone_convert = bool(raw.get("tone_convert", True))
+
     routing_raw = raw.get("routing", {})
     if routing_raw is None:
         routing_raw = {}
     if not isinstance(routing_raw, dict):
         raise ConfigLoadError("routing must be an object")
 
-    routing: dict[str, dict[str, str]] = {}
+    routing: dict[str, RouteConfig] = {}
     for key, value in routing_raw.items():
         if not isinstance(value, dict):
             raise ConfigLoadError(f"routing.{key} must be an object")
-        voice_id = str(value.get("voice_id", ""))
-        routing[str(key).lower()] = {"voice_id": voice_id}
-
-    api_key = str(env.get("ELEVENLABS_API_KEY", "")).strip()
+        # Accept legacy voice_id as speaker alias.
+        speaker = str(value.get("speaker") or value.get("voice_id") or "")
+        reference_wav = str(value.get("reference_wav") or "")
+        routing[str(key).lower()] = {
+            "speaker": speaker,
+            "reference_wav": reference_wav,
+        }
 
     return VoiceConfig(
         enabled=enabled,
         provider=provider,
-        base_url=base_url,
-        model_id=model_id,
-        api_key=api_key,
+        device=device,
+        checkpoints_dir=checkpoints_dir,
+        tone_convert=tone_convert,
         routing=routing,
     )
 
 
-def voice_id_for_mode(config: VoiceConfig, language_mode: str) -> str | None:
-    row = config["routing"].get(language_mode)
-    if not row:
-        return None
-    return row.get("voice_id")
+def route_for_mode(config: VoiceConfig, language_mode: str) -> RouteConfig | None:
+    return config["routing"].get(language_mode)

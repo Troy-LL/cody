@@ -1,9 +1,9 @@
-"""Tagalog ear-check for ElevenLabs (not run in CI).
+"""Tagalog ear-check for OpenVoice/MeloTTS (not run in CI).
 
 Requires:
+  - OpenVoice + MeloTTS installed (see voice/README.md)
   - copy voice/config.example.json → voice/config.local.json
-  - set real voice_id values
-  - set ELEVENLABS_API_KEY in the environment
+  - for tone_convert=true: checkpoints_v2 + reference wav
 
 Usage (from repo root):
   python voice/scripts/smoke_tl.py
@@ -24,7 +24,7 @@ from voice.speak import speak  # noqa: E402
 def main() -> int:
     ok = speak("receipt_lazada.pdf", "tl")
     print(f"speak(... 'tl') -> {ok}")
-    print("Ear-check: if Tagalog is unclear, swap model/voice once and re-run.")
+    print("Ear-check: TL text uses Melo EN speaker (OpenVoice has no native Tagalog).")
     return 0 if ok else 1
 
 

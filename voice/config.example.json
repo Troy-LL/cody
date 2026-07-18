@@ -1,12 +1,22 @@
 {
   "enabled": true,
   "language_mode": "auto",
-  "provider": "elevenlabs",
-  "base_url": "https://api.elevenlabs.io",
-  "model_id": "eleven_flash_v2_5",
+  "provider": "openvoice",
+  "device": "cpu",
+  "checkpoints_dir": "voice/checkpoints_v2",
+  "tone_convert": false,
   "routing": {
-    "en": { "voice_id": "<en_voice_id>" },
-    "tl": { "voice_id": "<tl_voice_id>" },
-    "taglish": { "voice_id": "<tl_voice_id>" }
+    "en": {
+      "speaker": "EN-US",
+      "reference_wav": "voice/refs/speaker.wav"
+    },
+    "tl": {
+      "speaker": "EN-US",
+      "reference_wav": "voice/refs/speaker.wav"
+    },
+    "taglish": {
+      "speaker": "EN-US",
+      "reference_wav": "voice/refs/speaker.wav"
+    }
   }
 }

@@ -1,3 +1,3 @@
-# Placeholder voice_id soft-fail
+# Placeholder speaker / reference soft-fail
 
-Missing, blank, or placeholder-looking `voice_id` values (containing `<` / `>` or the substring `voice_id`) soft-fail as `false` without calling ElevenLabs.
+Missing, blank, or placeholder-looking `speaker` values soft-fail as `false`. When `tone_convert` is true, a missing/placeholder `reference_wav` also soft-fails without calling the synthesizer.

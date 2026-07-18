@@ -1,14 +1,12 @@
-"""Tests for voice.speak — spec.md §6.6."""
+"""Tests for voice.speak — spec.md §6.6 (OpenVoice engine)."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-
-from voice.config import ConfigLoadError
+from voice.openvoice_engine import OpenVoiceUnavailable
 from voice.speak import render_template, speak
 
 
@@ -18,13 +16,17 @@ def _write_cfg(path: Path, data: dict) -> Path:
 
 
 def _enabled_cfg(tmp_path: Path, **overrides: object) -> Path:
+    ref = tmp_path / "speaker.wav"
+    ref.write_bytes(b"RIFF")
     data: dict = {
         "enabled": True,
-        "provider": "elevenlabs",
+        "provider": "openvoice",
+        "tone_convert": False,
+        "checkpoints_dir": str(tmp_path / "checkpoints_v2"),
         "routing": {
-            "en": {"voice_id": "en-voice"},
-            "tl": {"voice_id": "tl-voice"},
-            "taglish": {"voice_id": "tl-voice"},
+            "en": {"speaker": "EN-US", "reference_wav": str(ref)},
+            "tl": {"speaker": "EN-US", "reference_wav": str(ref)},
+            "taglish": {"speaker": "EN-US", "reference_wav": str(ref)},
         },
     }
     data.update(overrides)
@@ -33,17 +35,13 @@ def _enabled_cfg(tmp_path: Path, **overrides: object) -> Path:
 
 def test_empty_filename_soft_fails(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path)
-    with patch("voice.speak.CONFIG_PATH", cfg), patch(
-        "voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}
-    ):
+    with patch("voice.speak.CONFIG_PATH", cfg):
         assert speak("  ", "en") is False
 
 
 def test_auto_language_mode_soft_fails(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path)
-    with patch("voice.speak.CONFIG_PATH", cfg), patch(
-        "voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}
-    ):
+    with patch("voice.speak.CONFIG_PATH", cfg):
         assert speak("receipt_lazada.pdf", "auto") is False
 
 
@@ -61,34 +59,39 @@ def test_missing_config_is_planned_noop(tmp_path: Path) -> None:
 
 def test_disabled_returns_true(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path, enabled=False)
-    with patch("voice.speak.CONFIG_PATH", cfg), patch(
-        "voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}
-    ):
+    with patch("voice.speak.CONFIG_PATH", cfg):
         assert speak("receipt_lazada.pdf", "en") is True
 
 
-def test_missing_api_key_soft_fails(tmp_path: Path) -> None:
-    cfg = _enabled_cfg(tmp_path)
-    with patch("voice.speak.CONFIG_PATH", cfg), patch("voice.speak.os.environ", {}):
+def test_placeholder_speaker_soft_fails(tmp_path: Path) -> None:
+    cfg = _enabled_cfg(
+        tmp_path,
+        routing={
+            "en": {"speaker": "<EN-US>", "reference_wav": "x"},
+            "tl": {"speaker": "EN-US", "reference_wav": "x"},
+        },
+    )
+    with patch("voice.speak.CONFIG_PATH", cfg):
         assert speak("receipt_lazada.pdf", "en") is False
 
 
-def test_placeholder_voice_soft_fails(tmp_path: Path) -> None:
+def test_tone_convert_requires_reference(tmp_path: Path) -> None:
     cfg = _enabled_cfg(
         tmp_path,
-        routing={"en": {"voice_id": "<en_voice_id>"}, "tl": {"voice_id": "x"}},
+        tone_convert=True,
+        routing={
+            "en": {"speaker": "EN-US", "reference_wav": "voice/refs/missing.wav"},
+            "tl": {"speaker": "EN-US", "reference_wav": "voice/refs/missing.wav"},
+            "taglish": {"speaker": "EN-US", "reference_wav": "voice/refs/missing.wav"},
+        },
     )
-    with patch("voice.speak.CONFIG_PATH", cfg), patch(
-        "voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}
-    ):
+    with patch("voice.speak.CONFIG_PATH", cfg):
         assert speak("receipt_lazada.pdf", "en") is False
 
 
 def test_unsupported_provider_soft_fails(tmp_path: Path) -> None:
-    cfg = _enabled_cfg(tmp_path, provider="azure")
-    with patch("voice.speak.CONFIG_PATH", cfg), patch(
-        "voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}
-    ):
+    cfg = _enabled_cfg(tmp_path, provider="elevenlabs")
+    with patch("voice.speak.CONFIG_PATH", cfg):
         assert speak("receipt_lazada.pdf", "en") is False
 
 
@@ -99,54 +102,44 @@ def test_malformed_config_soft_fails(tmp_path: Path) -> None:
         assert speak("receipt_lazada.pdf", "en") is False
 
 
-def test_happy_path_calls_tts_and_startfile(tmp_path: Path) -> None:
+def test_happy_path_calls_openvoice_and_startfile(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path)
-    audio = b"ID3fake"
+    wav = tmp_path / "out.wav"
+    wav.write_bytes(b"RIFF")
     with (
         patch("voice.speak.CONFIG_PATH", cfg),
-        patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
-        patch("voice.speak._fetch_tts", return_value=audio) as fetch,
-        patch("voice.speak.os.startfile") as startfile,
-        patch("voice.speak.tempfile.NamedTemporaryFile") as ntf,
+        patch("voice.speak.synthesize_to_wav", return_value=wav) as synth,
+        patch("voice.speak._play_audio") as play,
     ):
-        tmp = MagicMock()
-        tmp.name = str(tmp_path / "out.mp3")
-        tmp.__enter__.return_value = tmp
-        tmp.__exit__.return_value = False
-        ntf.return_value = tmp
-
         assert speak("receipt_lazada.pdf", "EN") is True
 
-    fetch.assert_called_once()
-    assert fetch.call_args.kwargs["text"] == "Found it — receipt_lazada.pdf."
-    assert fetch.call_args.kwargs["voice_id"] == "en-voice"
-    startfile.assert_called_once_with(tmp.name)
+    synth.assert_called_once()
+    assert synth.call_args.kwargs["text"] == "Found it — receipt_lazada.pdf."
+    assert synth.call_args.kwargs["speaker"] == "EN-US"
+    assert synth.call_args.kwargs["tone_convert"] is False
+    play.assert_called_once_with(str(wav))
 
 
 def test_taglish_uses_tl_template(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path)
+    wav = tmp_path / "out.wav"
+    wav.write_bytes(b"RIFF")
     with (
         patch("voice.speak.CONFIG_PATH", cfg),
-        patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
-        patch("voice.speak._fetch_tts", return_value=b"x") as fetch,
-        patch("voice.speak.os.startfile"),
-        patch("voice.speak.tempfile.NamedTemporaryFile") as ntf,
+        patch("voice.speak.synthesize_to_wav", return_value=wav) as synth,
+        patch("voice.speak._play_audio"),
     ):
-        tmp = MagicMock()
-        tmp.name = str(tmp_path / "out.mp3")
-        tmp.__enter__.return_value = tmp
-        tmp.__exit__.return_value = False
-        ntf.return_value = tmp
         assert speak("a.pdf", "taglish") is True
-    assert fetch.call_args.kwargs["text"] == "Nakita ko na — a.pdf."
-    assert fetch.call_args.kwargs["voice_id"] == "tl-voice"
+    assert synth.call_args.kwargs["text"] == "Nakita ko na — a.pdf."
 
 
-def test_tts_failure_soft_fails(tmp_path: Path) -> None:
+def test_openvoice_unavailable_soft_fails(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path)
     with (
         patch("voice.speak.CONFIG_PATH", cfg),
-        patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
-        patch("voice.speak._fetch_tts", side_effect=TimeoutError("slow")),
+        patch(
+            "voice.speak.synthesize_to_wav",
+            side_effect=OpenVoiceUnavailable("no melo"),
+        ),
     ):
         assert speak("receipt_lazada.pdf", "tl") is False

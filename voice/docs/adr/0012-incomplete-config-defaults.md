@@ -1,3 +1,3 @@
 # Incomplete config defaults when enabled
 
-When `enabled: true`, missing `base_url` defaults to `https://api.elevenlabs.io` and missing `model_id` defaults to `eleven_flash_v2_5`. API key and a usable `voice_id` for the mode remain required.
+When enabled, missing `provider` defaults to `openvoice`, missing `device` defaults to `cpu` (or `OPENVOICE_DEVICE`), and missing `checkpoints_dir` defaults to `voice/checkpoints_v2`. A usable `speaker` remains required; `reference_wav` is required only when `tone_convert` is true.

@@ -21,8 +21,8 @@ The voice input contract: filename + language mode (`en` / `tl` / `taglish` afte
 _Avoid_: Free-form prompt, full matcher reasoning string
 
 **VoiceConfig**:
-Local settings for whether voice is on, provider/base URL, model id, and per-language voice routing. Non-secrets live in gitignored JSON; the API key comes from the environment only. The JSON `language_mode` field is orchestration’s concern — `speak` ignores it.
-_Avoid_: Hardcoded API keys, provider secrets in source or committed JSON
+Local settings for whether voice is on, OpenVoice device/checkpoints, and per-language Melo speaker + optional reference wav. Lives in gitignored JSON. The JSON `language_mode` field is orchestration’s concern — `speak` ignores it.
+_Avoid_: Cloud TTS API keys, committed checkpoint binaries
 
 **Speech soft-fail**:
 Voice must never block visual Reveal. Intentionally disabled (or missing config) is a planned no-op; a failed speak attempt is a soft failure that still leaves the demo visually successful.

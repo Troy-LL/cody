@@ -1,3 +1,3 @@
-# ElevenLabs HTTP timeout
+# No cloud HTTP timeout for OpenVoice
 
-The TTS HTTP call uses a 10 second timeout. On timeout (or other HTTP failure), `speak` soft-fails with `false` so orchestration’s UI thread is not stuck after Reveal.
+OpenVoice runs locally (no ElevenLabs HTTP call). Synthesis/import failures soft-fail as `false` instead of a network timeout policy.

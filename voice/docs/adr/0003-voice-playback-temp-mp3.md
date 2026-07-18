@@ -1,3 +1,3 @@
-# Voice playback via temp MP3
+# Voice playback via OpenVoice WAV + startfile
 
-`speak` writes ElevenLabs audio bytes to a temporary `.mp3` file and plays it with `os.startfile`. No new playback dependencies. The temp file is left on disk after start (avoid player file-lock races). Playback/start failures soft-fail as `false`.
+`speak` synthesizes a WAV through OpenVoice/MeloTTS and plays it with `os.startfile`. Temp output is left on disk after start (avoid player file-lock races). Playback/synth failures soft-fail as `false`.

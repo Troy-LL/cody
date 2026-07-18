@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
-import tempfile
-import urllib.error
-import urllib.request
-from typing import Any
+from pathlib import Path
 
 from voice.config import (
     CONFIG_PATH,
     ConfigLoadError,
     ConfigMissing,
-    is_usable_voice_id,
+    is_usable_reference,
+    is_usable_speaker,
     load_voice_config,
-    voice_id_for_mode,
+    route_for_mode,
 )
+from voice.openvoice_engine import OpenVoiceUnavailable, synthesize_to_wav
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +25,6 @@ TEMPLATES = {
     "taglish": "Nakita ko na — {filename}.",
 }
 
-HTTP_TIMEOUT_S = 10.0
-
 
 def render_template(filename: str, language_mode: str) -> str:
     mode = language_mode.lower()
@@ -36,35 +32,7 @@ def render_template(filename: str, language_mode: str) -> str:
     return template.format(filename=filename)
 
 
-def _fetch_tts(
-    *,
-    base_url: str,
-    voice_id: str,
-    api_key: str,
-    model_id: str,
-    text: str,
-) -> bytes:
-    url = f"{base_url.rstrip('/')}/v1/text-to-speech/{voice_id}"
-    payload = json.dumps({"text": text, "model_id": model_id}).encode("utf-8")
-    request = urllib.request.Request(
-        url,
-        data=payload,
-        method="POST",
-        headers={
-            "xi-api-key": api_key,
-            "Content-Type": "application/json",
-            "Accept": "audio/mpeg",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_S) as response:
-        return response.read()
-
-
-def _play_mp3(audio: bytes) -> None:
-    # delete=False: leave file so the OS player can open it after we return.
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as handle:
-        handle.write(audio)
-        path = handle.name
+def _play_audio(path: str) -> None:
     os.startfile(path)  # type: ignore[attr-defined]
 
 
@@ -93,35 +61,41 @@ def speak(filename: str, language_mode: str) -> bool:
         logger.warning("speak: enabled=false; planned no-op")
         return True
 
-    if loaded["provider"].lower() != "elevenlabs":
-        logger.warning("speak: unsupported provider %r", loaded["provider"])
+    if loaded["provider"].lower() != "openvoice":
+        logger.warning("speak: unsupported provider %r (expected openvoice)", loaded["provider"])
         return False
 
-    api_key = loaded["api_key"]
-    if not api_key:
-        logger.warning("speak: missing ELEVENLABS_API_KEY")
+    route = route_for_mode(loaded, mode)
+    if route is None or not is_usable_speaker(route.get("speaker")):
+        logger.warning("speak: missing or placeholder speaker for mode %s", mode)
         return False
 
-    voice_id = voice_id_for_mode(loaded, mode)
-    if not is_usable_voice_id(voice_id):
-        logger.warning("speak: missing or placeholder voice_id for mode %s", mode)
+    if loaded["tone_convert"] and not is_usable_reference(route.get("reference_wav")):
+        logger.warning(
+            "speak: tone_convert requires an existing reference_wav for mode %s", mode
+        )
         return False
 
     text = render_template(str(filename).strip(), mode)
     try:
-        audio = _fetch_tts(
-            base_url=loaded["base_url"],
-            voice_id=str(voice_id),
-            api_key=api_key,
-            model_id=loaded["model_id"],
+        wav_path = synthesize_to_wav(
             text=text,
+            speaker=route["speaker"],
+            language_mode=mode,
+            checkpoints_dir=loaded["checkpoints_dir"],
+            device=loaded["device"],
+            reference_wav=route.get("reference_wav") or None,
+            tone_convert=loaded["tone_convert"],
         )
-        if not audio:
-            logger.warning("speak: empty TTS response")
+        if not Path(wav_path).is_file():
+            logger.warning("speak: synthesizer produced no file")
             return False
-        _play_mp3(audio)
-    except (TimeoutError, urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
-        logger.warning("speak: TTS/playback failed: %s", exc)
+        _play_audio(str(wav_path))
+    except OpenVoiceUnavailable as exc:
+        logger.warning("speak: OpenVoice unavailable: %s", exc)
+        return False
+    except OSError as exc:
+        logger.warning("speak: playback failed: %s", exc)
         return False
     except Exception as exc:  # noqa: BLE001 — soft-fail contract
         logger.warning("speak: unexpected failure: %s", exc)
