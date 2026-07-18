@@ -36,9 +36,11 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Each task: implement with Cursor Grok 4.5 subagents per the SDD workflow, then run a review pass before merging.
 - Keep OpenSpec specs and component READMEs updated when behavior or contracts change.
 
-## Git: feature branches, granular commits, PR-only main
+## Git: always branch, granular commits, PR-only main
 
-- **Never push or commit directly to `main` / `master`.** Those branches are protected. Work only on your feature branch (e.g. `feature/indexer`, `person-2`). Landing on main is via PR + the PM merge-gate loop only.
+- **Always branch for development.** Update local `main`, then `git checkout -b feature/<area>` (or your seat branch) before any edits. Never commit on `main` / `master`.
+- **Never push or commit directly to `main` / `master`.** Those branches are protected. Landing on main is via PR + the PM/QA merge-gate loop only.
+- **Do not delete remote branches** unless the branch owner explicitly asks.
 - **Granular commits required.** One concern per commit — stub, failing tests, implementation slice, docs note, etc. Do not squash a whole component into one mega-commit. Prefer many small why-focused messages.
 - After each logical slice (tests green for that slice), **commit immediately**, then **push immediately** (`git push -u origin HEAD`). Do not wait to be asked; do not batch.
 - Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens). Do not skip hooks unless the owner explicitly asks.

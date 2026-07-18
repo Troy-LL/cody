@@ -15,8 +15,10 @@ Before work: read root README, your component README, and `openspec/specs/<domai
 - SDD review: OpenSpec + README stay SoT; finish with a review pass.
 - Subagents: Cursor Grok 4.5 for task implementation and review.
 
-## Git (feature branches only)
-- Never push, force-push, or commit directly to `main`/`master`. Work only on your feature branch; main is PR-gated (PM merge loop).
+## Git (always branch, PR-only main)
+- Always start work from latest `main` on a new feature branch (`git checkout -b feature/<area>`). Never develop on `main`/`master`.
+- Never push, force-push, commit, or merge locally into `main`/`master`. Landing is PR-only via the PM/QA merge-gate loop.
+- Do not delete remote branches unless the owner explicitly asks.
 - Granular commits: one concern per commit (e.g. stub, then tests, then impl, then docs). No mega-commits dumping a whole component.
 - After each logical slice (tests green): auto-commit with a concise why-focused message, then `git push -u origin HEAD`.
 - Stage only owned/relevant files; never commit secrets (`.env`, keys, tokens). No `--no-verify` unless owner asks.
