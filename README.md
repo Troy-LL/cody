@@ -1,21 +1,62 @@
-# Cody — team map
+# Cody
 
-**Product context:** [`spec.md`](spec.md) is the product source of truth (contracts, fixtures, demo scope).
+Cody is an AI that **shows you where a file is** instead of explaining how to dig for it.
 
-**Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md). Codex sprint agent pack: [`.codex/`](.codex/).
+You describe a file in plain (messy, Taglish-friendly) language. Cody searches a real local folder by metadata and content, then opens the folder, selects the file, and speaks a short confirmation. The point of the product is that last moment: pointing, not instructions.
 
-**Git (SPEED MODE):** work and push **directly on `main`** — no feature branches / PRs this sprint. Granular commits; push each slice. Cursor overlay demo: [`demo/cody-cursor/README.md`](demo/cody-cursor/README.md).
+Example: *"yung resibo ko sa Lazada last week"* → Cody finds the receipt PDF, highlights it in Explorer, and says so out loud.
 
-| Seat | Owner | Folders | Branch(es) | OpenSpec domain | Contract (`spec.md`) | Done when |
-|------|-------|---------|------------|-----------------|----------------------|-----------|
-| Person 1 | Troy | [`orchestration/`](orchestration/README.md) | `feature/orchestration` | [`orchestration`](openspec/specs/orchestration/spec.md) | §6.7 + pipeline glue | Full pipeline runs E2E with baseline animation + voice call |
-| Person 2 | TBD | [`indexer/`](indexer/README.md) | `feature/indexer` | [`indexer`](openspec/specs/indexer/spec.md) | §6.1 `FileRecord` | Folder path → valid `FileRecord` list (top-level) |
-| Person 3 | TBD | [`extractor/`](extractor/README.md) | `feature/extractor` | [`extractor`](openspec/specs/extractor/spec.md) | §6.2 `ExtractedContent` | PDF/docx/txt snippets; graceful `extractable: false` |
-| Person 4 | TBD | [`nlu/`](nlu/README.md) | `feature/nlu` | [`nlu`](openspec/specs/nlu/spec.md) | §6.3 `QueryIntent` | Taglish + relative time → structured intent |
-| Person 5 | TBD | [`matcher/`](matcher/README.md) | `feature/matcher` | [`matcher`](openspec/specs/matcher/spec.md) | §6.4 `MatchResult` (Cody) | Fixtures → correct best match + reasoning |
-| Person 6 | TBD | [`reveal/`](reveal/README.md), [`voice/`](voice/README.md) | `feature/reveal`, `feature/voice` | [`reveal`](openspec/specs/reveal/spec.md), [`voice`](openspec/specs/voice/spec.md) | §6.5 + §6.6 | OS select works; templated TTS speaks EN/TL |
-| Stretch | Unassigned | [`overlay-stretch/`](overlay-stretch/README.md) | `feature/overlay-stretch` | [`overlay-stretch`](openspec/specs/overlay-stretch/spec.md) | §6.8 | Overlay lands on icon by 2:00 or drop |
+## What it does
 
-**Locked for this sprint:** Windows demo machine · top-level folder scan · Person 6 owns reveal + voice · Troy owns orchestration only · Contracts/fixtures + PySide shell: `pyproject.toml`, `contracts/`, `fixtures/`, `python -m orchestration.main --demo-stubs`.
+1. You pick a folder and type a natural-language query (English or Taglish).
+2. Cody indexes the folder, extracts text from PDF/docx/txt, and understands the query (including relative time like "last week").
+3. The matcher picks a best match and explains why.
+4. The app animates toward that path, reveals the file in the OS, and narrates the result (English or Tagalog).
 
-**Team workflow OpenSpec:** [`openspec/specs/team-workflow/spec.md`](openspec/specs/team-workflow/spec.md).
+MVP is a single happy path on a Windows demo machine. Voice **input** and cloud sync are out of scope for now.
+
+Product truth and contracts live in [`spec.md`](spec.md).
+
+## Requirements
+
+- Python 3.12+
+- Windows is the locked demo target (reveal uses Explorer select)
+- On Linux, Qt may need system libs (`libegl1`, `libxcb-cursor0`, `libxkbcommon-x11-0`, …) for `xcb` / `offscreen`
+
+## Setup
+
+```bash
+python -m venv .venv
+.venv\Scripts\pip install -e ".[dev]"
+```
+
+If OneDrive `MAX_PATH` bites you on Windows, install `PySide6-Essentials` instead of full `PySide6` (see note in `pyproject.toml`).
+
+## Run
+
+Desktop app (stub seats until live packages are wired):
+
+```bash
+python -m orchestration.main --demo-stubs
+```
+
+Browser cursor overlay demo (mock desktop + pointing animation):
+
+```bash
+python -m http.server 8765
+```
+
+Then open [http://localhost:8765/demo/cody-cursor/overlay.html](http://localhost:8765/demo/cody-cursor/overlay.html). Details: [`demo/cody-cursor/README.md`](demo/cody-cursor/README.md).
+
+## Test
+
+```bash
+set QT_QPA_PLATFORM=offscreen
+python -m pytest
+```
+
+## Contributing
+
+- Setup and package layout: [`AGENTS.md`](AGENTS.md)
+- Sprint seats and parallel build map: [`docs/team/SPRINT-MAP.md`](docs/team/SPRINT-MAP.md)
+- Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md)
