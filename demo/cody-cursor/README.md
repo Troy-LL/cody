@@ -19,6 +19,8 @@ python -m http.server 8765
 |-----|------|
 | http://localhost:8765/demo/cody-cursor/overlay.html | Full demo (mock desktop + Cody) |
 | http://localhost:8765/demo/cody-cursor/host.html | Same overlay in a fullscreen iframe |
+| http://localhost:8765/demo/cody-cursor/lens-frame.html | Magnifying-glass HTML (hole + Cody) |
+| `python -m overlay` / `scripts/run_cody_html_lens.ps1` | Transparent host window for the HTML lens (see desktop through the hole) |
 
 Allow the mic when the browser asks (localhost is fine).
 

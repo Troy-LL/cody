@@ -40,6 +40,16 @@ Desktop app (stub seats until live packages are wired):
 python -m orchestration.main --demo-stubs
 ```
 
+Desktop companion cursor (voice + full-screen OCR pointing):
+
+```powershell
+$env:PYTHONPATH = (Get-Location).Path
+.\.venv\Scripts\pip install -e ".[overlay]"
+.\.venv\Scripts\python -m overlay
+```
+
+Say **Hey Cody, where's my ___** (or type + Find). Details: [`overlay/README.md`](overlay/README.md).
+
 Browser cursor overlay demo (mock desktop + pointing animation):
 
 ```bash
