@@ -20,7 +20,7 @@ Open:
 | Input | Action |
 |-------|--------|
 | Mouse move | Real cursor stays; small Cody sits lower-right (independent spring) |
-| 🎤 Listen / `V` | Voice: say “where’s Lazada” (Chrome/Edge) |
+| 🎤 Listen / `V` | Voice: say “where’s Lazada” (Chrome/Edge); bar meter shows mic volume while listening |
 | `1` or HUD | Point at `receipt_lazada.pdf` + thought caption |
 | `2` or HUD | Point at `invoice_shopee.pdf` |
 | `Esc` | Resume follow |
