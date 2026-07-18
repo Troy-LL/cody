@@ -7,7 +7,7 @@
 | **Owns** | `indexer/` package and `index_folder` entry point. |
 | **Does not own** | Content extraction, matching, UI, recursive deep walks (MVP is top-level). |
 | **Frozen I/O** | `index_folder(path: str) -> list[FileRecord]` per `spec.md` §6.1. |
-| **Stub requirement** | Stub raises `NotImplementedError` until fixture-shaped return lands (Task 2 / 0:30). |
+| **Stub requirement** | Real top-level walker landed; returns `FileRecord` dicts (extension `""` when none). |
 | **Test command** | `python -m pytest indexer/tests -q` (owner adds tests). |
 | **Branch** | `feature/indexer` |
 | **Done condition** | Any folder path returns valid `FileRecord` JSON for every top-level file. |
