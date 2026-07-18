@@ -1,0 +1,35 @@
+# Install: python -m venv .venv ; .venv/Scripts/pip install -e .
+# Windows OneDrive MAX_PATH: pip install PySide6-Essentials (instead of full PySide6).
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clicky"
+version = "0.1.0"
+description = "Clicky — AI that shows you where a file is"
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6",
+    "pytest",
+    "pytest-qt",
+]
+
+[tool.setuptools.packages.find]
+include = [
+    "contracts*",
+    "fixtures*",
+    "orchestration*",
+    "indexer*",
+    "extractor*",
+    "nlu*",
+    "matcher*",
+    "reveal*",
+    "voice*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

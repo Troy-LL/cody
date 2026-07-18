@@ -1,0 +1,50 @@
+[
+  {
+    "path": "C:/Users/troy/Desktop/receipt_lazada.pdf",
+    "extractable": true,
+    "text_snippet": "Lazada Order Confirmation... Total: PHP 1,240.00... Order date: July 9, 2026",
+    "extraction_method": "pdf_text_layer"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/lazada_screenshot.png",
+    "extractable": false,
+    "text_snippet": null,
+    "extraction_method": "unsupported"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/meeting_notes_july.docx",
+    "extractable": true,
+    "text_snippet": "Sprint planning notes — blockers, owners, and demo checklist for Clicky MVP.",
+    "extraction_method": "docx_paragraphs"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/todo_list.txt",
+    "extractable": true,
+    "text_snippet": "- buy groceries\n- pay electric bill\n- call mama",
+    "extraction_method": "plain_text"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/invoice_shopee.pdf",
+    "extractable": true,
+    "text_snippet": "Shopee Order Invoice... Total: PHP 560.00... Order date: June 18, 2026",
+    "extraction_method": "pdf_text_layer"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/family_photo.jpg",
+    "extractable": false,
+    "text_snippet": null,
+    "extraction_method": "unsupported"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/budget_q2.xlsx",
+    "extractable": false,
+    "text_snippet": null,
+    "extraction_method": "unsupported"
+  },
+  {
+    "path": "C:/Users/troy/Desktop/readme_project.txt",
+    "extractable": true,
+    "text_snippet": "Clicky demo notes — messy Desktop fixture for Taglish queries.",
+    "extraction_method": "plain_text"
+  }
+]
