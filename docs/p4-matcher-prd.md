@@ -91,7 +91,7 @@ From 10.4. The sprint is three hours.
 
 - 0:00 to 0:15. Kickoff. Contracts locked, P4 ownership confirmed.
 - By 0:30. Stub commit to `main` returning fixture-shaped `MatchResult`. Codex smoke test on one fixture query happens in this window; it is the last cheap moment to swap the model.
-- 0:30 to 2:00. Real implementation replaces the stub on `feature/matcher`, merged to `main` when green (11.3).
+- 0:30 to 2:00. Real implementation replaces the stub on `rohart-branch`, merged via PR when green (11.3).
 - 2:00 to 2:30. Integration checkpoint. The full pipeline runs on the real demo folder with the real matcher.
 - 2:30. Freeze. Only demo-breaking fixes after this.
 
