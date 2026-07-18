@@ -87,7 +87,10 @@ def load_voice_config(
         voice_id = str(value.get("voice_id", ""))
         routing[str(key).lower()] = {"voice_id": voice_id}
 
+    # Env wins; optional api_key in gitignored config.local.json for local demo.
     api_key = str(env.get("ELEVENLABS_API_KEY", "")).strip()
+    if not api_key:
+        api_key = str(raw.get("api_key", "")).strip()
 
     return VoiceConfig(
         enabled=enabled,
@@ -104,3 +107,26 @@ def voice_id_for_mode(config: VoiceConfig, language_mode: str) -> str | None:
     if not row:
         return None
     return row.get("voice_id")
+
+
+def save_api_key(api_key: str, path: Path | None = None) -> None:
+    """Write api_key into gitignored config.local.json (keeps other fields)."""
+    cfg_path = path if path is not None else CONFIG_PATH
+    data: dict[str, Any] = {}
+    if cfg_path.is_file():
+        try:
+            loaded = json.loads(cfg_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data = loaded
+        except (OSError, json.JSONDecodeError):
+            data = {}
+    data["enabled"] = True
+    data["provider"] = str(data.get("provider") or "elevenlabs")
+    data["api_key"] = str(api_key).strip()
+    if "routing" not in data:
+        data["routing"] = {
+            "en": {"voice_id": "21m00Tcm4TlvDq8ikWAM"},
+            "tl": {"voice_id": "21m00Tcm4TlvDq8ikWAM"},
+            "taglish": {"voice_id": "21m00Tcm4TlvDq8ikWAM"},
+        }
+    cfg_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

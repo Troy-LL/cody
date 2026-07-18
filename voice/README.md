@@ -19,7 +19,9 @@
 
 1. Copy [`config.example.json`](config.example.json) to `config.local.json` (gitignored via [`.gitignore`](.gitignore)).
 2. Set real `voice_id` values (placeholders soft-fail).
-3. Export `ELEVENLABS_API_KEY` (never commit keys).
+3. Set `ELEVENLABS_API_KEY` in the environment, or put `api_key` in `config.local.json` (local demo only — never commit).
+
+Overlay pointing (`speak_point`) uses **ElevenLabs only** (no Windows SAPI fallback).
 
 The JSON `language_mode` field is kept for §8.2 shape but **ignored by `speak`** — orchestration owns `auto` resolution. Call `speak` with `en`, `tl`, or `taglish` only (`auto` soft-fails).
 

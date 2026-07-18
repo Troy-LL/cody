@@ -4,6 +4,7 @@
   "provider": "elevenlabs",
   "base_url": "https://api.elevenlabs.io",
   "model_id": "eleven_flash_v2_5",
+  "api_key": "",
   "routing": {
     "en": { "voice_id": "<en_voice_id>" },
     "tl": { "voice_id": "<tl_voice_id>" },

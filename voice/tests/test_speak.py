@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from voice.config import ConfigLoadError
-from voice.speak import render_template, speak
+from voice.speak import render_point_prompt, render_template, speak, speak_point
 
 
 def _write_cfg(path: Path, data: dict) -> Path:
@@ -51,6 +51,16 @@ def test_templates() -> None:
     assert render_template("a.pdf", "en") == "Found it — a.pdf."
     assert render_template("a.pdf", "tl") == "Nakita ko na — a.pdf."
     assert render_template("a.pdf", "taglish") == "Nakita ko na — a.pdf."
+
+
+def test_point_prompt_contains_label() -> None:
+    line = render_point_prompt("Sort", "en")
+    assert "Sort" in line
+    assert line.endswith(".")
+
+
+def test_speak_point_empty_soft_fails() -> None:
+    assert speak_point("  ", "en") is False
 
 
 def test_missing_config_is_planned_noop(tmp_path: Path) -> None:
