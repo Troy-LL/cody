@@ -18,6 +18,15 @@ dependencies = [
     "datasets",
 ]
 
+[project.optional-dependencies]
+overlay = [
+    "uiautomation>=2.0.18",
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+cody-overlay = "overlay.tk_app:main"
+
 [tool.setuptools.packages.find]
 include = [
     "contracts*",
@@ -30,9 +39,10 @@ include = [
     "data*",
     "reveal*",
     "voice*",
+    "overlay*",
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "overlay/tests"]
 pythonpath = ["."]
 addopts = "-q"
