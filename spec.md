@@ -256,16 +256,18 @@ Same pattern as 8.1, kept as a separate config since the TTS provider doesn't ne
 - `en` and `tl` can even share one `voice_id` since multilingual models switch language based on the input text — separate rows kept anyway so voices can be tuned per language without touching code
 - `enabled: false` must cleanly fall back to visual-only reveal — voice should never be a hard dependency for the core demo moment to work, in case the key isn't wired up yet or the API fails live
 
-## 9. Open decisions (need answers before build starts)
+## 9. Sprint decisions (locked for this sprint)
 
-- [ ] Recursive folder scan, or top-level only, for the demo? (sprint default: top-level)
-- [x] ~~Which LLM/model powers the matcher~~ → **Resolved: OpenAI's Codex API** (Section 8.1). Still open: is caching worth setting up for repeated demo runs? (sprint default: no caching)
-- [ ] Exact list of demo files/scenarios to stage (need at least one Taglish + relative-time case per Section 4)
-- [ ] Windows vs Mac as the primary demo machine (affects who builds the reveal layer first)
+Pre-kickoff open questions; locked to match the team map (`README.md`). Codex matcher + ElevenLabs TTS stay as previously resolved.
+
+- [x] Recursive folder scan, or top-level only, for the demo? → **Locked: top-level only** (not recursive)
+- [x] ~~Which LLM/model powers the matcher~~ → **Resolved: OpenAI's Codex API** (Section 8.1). Caching → **Locked: none** (sprint default — demo scale doesn't need it)
+- [x] Exact list of demo files/scenarios to stage → **Staging owner: Person 1 (Troy) during sprint** (exact file list TBD; need at least one Taglish + relative-time case per Section 4)
+- [x] Windows vs Mac as the primary demo machine → **Locked: Windows**
 - [x] ~~Which TTS provider powers the Voice Layer~~ → **Resolved: ElevenLabs** (Section 8.2). Still to verify in first 30 min: Tagalog voice quality on `eleven_flash_v2_5`
-- [ ] Is voice demo-blocking, or a nice-to-have that falls back to visual-only if it's not ready in time? (sprint default: fallback — Section 8.2 already designs for this)
-- [ ] Who owns the Voice Layer — a dedicated seat, or folded into an existing owner's scope (Reveal or Orchestration are the natural fits)?
-- [ ] Who attempts the stretch overlay — whoever finishes their primary component first, or does someone volunteer upfront? (cutoff is fixed at the 2:00 mark — Section 10.4)
+- [x] Is voice demo-blocking, or a nice-to-have that falls back to visual-only if it's not ready in time? → **Locked: fallback-only** (not demo-blocking — Section 8.2 already designs for this)
+- [x] Who owns the Voice Layer → **Locked: Person 6** (folded into Reveal + Voice; Troy owns orchestration only)
+- [x] Who attempts the stretch overlay → **Unassigned / whoever finishes early**; cutoff fixed at the **2:00** mark (Section 10.4)
 
 ## 10. Team kickoff — ownership & alignment
 
@@ -304,12 +306,12 @@ Each owner should leave kickoff knowing exactly this — no more, no less:
 - Done when: the full pipeline runs end-to-end on the real demo folder, visually (with the baseline animation) and aloud
 - Depends on: everyone else's contracts — can build the shell against mocked responses before real components exist
 
-**Voice Layer Owner — TBD (dedicated seat, or folded into Reveal/Orchestration)**
+**Voice Layer Owner — Person 6 (folded into Reveal + Voice)**
 - Build: `SpeechRequest` (Section 6.6) → one ElevenLabs TTS call routed via the `VoiceConfig.routing` table (Section 8.2) → play audio + success/failure boolean
 - Done when: given a fixture filename, correctly speaks the templated confirmation in both English and Tagalog through the routed voice
 - First 30 minutes: smoke-test Tagalog output quality on `eleven_flash_v2_5` — this is the last cheap moment to change model or voice
 - No dependencies to start — build against hardcoded filenames and both language templates; wire in the real `QueryIntent.language_mix` for `"auto"` mode once component 3 exists
-- Needs resolving at kickoff: dedicated builder, or does someone already on Reveal/Orchestration pick this up alongside their component?
+- Ownership locked: same seat as Reveal (Person 6); not folded into Orchestration
 
 **Stretch: Pointing Overlay Owner (Option A) — optional, not a required seat**
 - Build: `OverlayRequest` (Section 6.8) → animated highlight on the real file icon + success/failure boolean
@@ -331,20 +333,20 @@ Goal: the group leaves aligned on scope, and the open decisions in Section 9 get
    - Voice Layer + stretch overlay ownership
 4. **Confirm ownership (2 min)** — each person states their component out loud
 
-### 10.3 Decision log (fill in during/after the session)
+### 10.3 Decision log (locked for this sprint)
 
 | Decision | Chosen option | Reasoning | Owner |
 |---|---|---|---|
-| Scan depth (recursive vs. top-level) | | | |
-| Matcher model | OpenAI Codex API (`gpt-5.3-codex`, via Responses API) | Team decision — confirm smoke test results at kickoff | |
-| Caching approach | | | |
-| Demo scenarios/files | | | |
-| Primary OS | | | |
-| TTS provider | ElevenLabs (`eleven_flash_v2_5`, routing per Section 8.2) | Team decision — verify Tagalog voice quality in first 30 min | |
-| Voice demo-blocking or fallback-only | | | |
-| Voice Layer ownership | | | |
-| Stretch overlay cutoff time | Default: 2:00 mark | Sprint schedule (Section 10.4) | |
-| Stretch overlay owner (optional) | | | |
+| Scan depth (recursive vs. top-level) | Top-level only | Sprint lock — demo folder treated as flat; recursive deferred (Section 12) | Person 2 (Indexer) |
+| Matcher model | OpenAI Codex API (`gpt-5.3-codex`, via Responses API) | Team decision — confirm smoke test results at kickoff | Person 5 (Matcher) |
+| Caching approach | None | Sprint default — demo scale doesn't need it | Person 5 (Matcher) |
+| Demo scenarios/files | TBD (stage during sprint; ≥1 Taglish + relative-time) | Staging during sprint; exact list not frozen yet | Person 1 (Troy) |
+| Primary OS | Windows | Sprint lock — demo machine | Person 6 (Reveal) |
+| TTS provider | ElevenLabs (`eleven_flash_v2_5`, routing per Section 8.2) | Team decision — verify Tagalog voice quality in first 30 min | Person 6 (Voice) |
+| Voice demo-blocking or fallback-only | Fallback-only | Not demo-blocking; Section 8.2 already handles failure | Person 6 (Voice) |
+| Voice Layer ownership | Person 6 (folded into Reveal + Voice) | Six-seat handoff; Troy owns orchestration only | Person 6 |
+| Stretch overlay cutoff time | 2:00 mark | Sprint schedule (Section 10.4) | Stretch (unassigned) |
+| Stretch overlay owner (optional) | Unassigned / whoever finishes early | Optional seat; drop if not ready by cutoff | Unassigned |
 
 ### 10.4 The 3-hour sprint schedule
 

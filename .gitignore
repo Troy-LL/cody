@@ -7,3 +7,12 @@ Thumbs.db
 node_modules/
 dist/
 *.log
+.worktrees/
+.superpowers/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+*.egg-info/
+
