@@ -4,7 +4,7 @@
 
 **Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md). Codex sprint agent pack: [`.codex/`](.codex/).
 
-**Git (enforced):** never push to `main`/`master` — feature branches + PR only (PM merge gate). Use **granular commits** (one concern each); auto-commit and push each slice on your branch.
+**Git (enforced):** always branch from latest `main` before coding; never develop or push on `main`/`master` — PR-only via the PM/QA merge gate. Do not delete remote branches unless the owner asks. Use **granular commits** (one concern each); auto-commit and push each slice on your branch.
 
 | Seat | Owner | Folders | Branch(es) | OpenSpec domain | Contract (`spec.md`) | Done when |
 |------|-------|---------|------------|-----------------|----------------------|-----------|
@@ -19,4 +19,3 @@
 **Locked for this sprint:** Windows demo machine · top-level folder scan · Person 6 owns reveal + voice · Troy owns orchestration only · Contracts/fixtures + PySide shell: `pyproject.toml`, `contracts/`, `fixtures/`, `python -m orchestration.main --demo-stubs`.
 
 **Team workflow OpenSpec:** [`openspec/specs/team-workflow/spec.md`](openspec/specs/team-workflow/spec.md).
-protection-smoke 2026-07-18T14:03:54.9822737+08:00

@@ -4,12 +4,12 @@
 Thumbs.db
 .env
 .env.*
+matcher/local_model.json
 node_modules/
 dist/
 *.log
 .worktrees/
 .superpowers/
-# Local Cursor IDE junction to .codex (optional; see docs/team/SDD-ETIQUETTE.md)
 .cursor/
 .venv/
 __pycache__/
@@ -17,4 +17,5 @@ __pycache__/
 *.pyc
 
 *.egg-info/
-
+.specstory/
+.cursorindexingignore

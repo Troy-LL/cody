@@ -1,0 +1,6 @@
+{
+  "provider": "openai",
+  "base_url": "https://api.openai.com/v1",
+  "api_key": "PASTE_KEY_HERE",
+  "model": "gpt-5.3-codex"
+}

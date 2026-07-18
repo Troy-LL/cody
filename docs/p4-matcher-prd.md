@@ -1,10 +1,10 @@
 # P4 matcher (Cody) product requirements
 
-Owner scope is component 4 of Cody — the Matcher / Ranker (Section 5). This PRD covers only what P4 must build and prove. Spec references are to `/workspace/spec.md`.
+Owner scope is component 4 of Clicky, the Matcher / Ranker named Cody (Section 5). This PRD covers only what P4 must build and prove. Spec references are to `/workspace/spec.md`.
 
 ## Problem and product bet
 
-People can describe a file they cannot name. "Yung resibo ko sa Lazada last week" is a real query, and no filename search answers it. Cody's bet is that pointing beats explaining (Section 2). Instead of instructions, the demo ends with the actual file selected on a real machine.
+People can describe a file they cannot name. "Yung resibo ko sa Lazada last week" is a real query, and no filename search answers it. Clicky's bet is that pointing beats explaining (Section 2). Instead of instructions, the demo ends with the actual file selected on a real machine.
 
 Cody is the reasoning engine that makes the pointing possible (Section 1). It takes indexed metadata, extracted text, and a structured query, and decides which file the person means.
 
@@ -91,7 +91,7 @@ From 10.4. The sprint is three hours.
 
 - 0:00 to 0:15. Kickoff. Contracts locked, P4 ownership confirmed.
 - By 0:30. Stub commit to `main` returning fixture-shaped `MatchResult`. Codex smoke test on one fixture query happens in this window; it is the last cheap moment to swap the model.
-- 0:30 to 2:00. Real implementation replaces the stub on `feature/matcher`, merged to `main` when green (11.3).
+- 0:30 to 2:00. Real implementation replaces the stub on `rohart-branch`, merged via PR when green (11.3).
 - 2:00 to 2:30. Integration checkpoint. The full pipeline runs on the real demo folder with the real matcher.
 - 2:30. Freeze. Only demo-breaking fixes after this.
 
