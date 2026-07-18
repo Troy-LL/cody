@@ -4,6 +4,8 @@
 
 **Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md).
 
+**Git (enforced):** never push to `main`/`master` — feature branches + PR only (PM merge gate). Use **granular commits** (one concern each); auto-commit and push each slice on your branch.
+
 | Seat | Owner | Folders | Branch(es) | OpenSpec domain | Contract (`spec.md`) | Done when |
 |------|-------|---------|------------|-----------------|----------------------|-----------|
 | Person 1 | Troy | [`orchestration/`](orchestration/README.md) | `feature/orchestration` | [`orchestration`](openspec/specs/orchestration/spec.md) | §6.7 + pipeline glue | Full pipeline runs E2E with baseline animation + voice call |
