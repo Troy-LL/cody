@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import PureWindowsPath
-
 from contracts.schemas import (
     ExtractedContent,
     FileRecord,
@@ -90,15 +88,6 @@ class DemoStubs:
         return True
 
     def build_reveal_animation(self, path: str, root: str) -> RevealAnimation:
-        file_path = PureWindowsPath(path)
-        root_path = PureWindowsPath(root)
-        try:
-            relative = file_path.relative_to(root_path)
-            segments = [root_path.name, *relative.parts]
-        except ValueError:
-            segments = list(file_path.parts[-2:]) if len(file_path.parts) >= 2 else [file_path.name]
-        return {
-            "path": path,
-            "root": root,
-            "segments": segments,
-        }
+        from orchestration.reveal_animation import build_reveal_animation
+
+        return build_reveal_animation(path, root)

@@ -1,25 +1,68 @@
-"""Wire demo stubs (or later live components) for the orchestration shell."""
+"""Composition root: demo stubs or live public entry points."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from orchestration.controller import ClickyController, ControllerDeps
 from orchestration.demo_stubs import DemoStubs
 
 
 @dataclass
 class AppBundle:
-    """Minimal composition root for Task 2 — stubs only, no pipeline yet."""
+    """Wired controller + optional stubs for recovery path."""
 
+    controller: ClickyController
     stubs: DemoStubs | None
     demo_stubs: bool
 
 
-def build_app(*, demo_stubs: bool = False) -> AppBundle:
-    """Build the orchestration composition root.
+def _live_deps(*, voice_enabled: bool = True) -> ControllerDeps:
+    """Import only the six public entry points (no component internals)."""
+    from indexer.index_folder import index_folder
+    from extractor.extract import extract
+    from nlu.parse_query import parse_query
+    from matcher.match import match
+    from reveal.reveal import reveal
+    from voice.speak import speak
 
-    When *demo_stubs* is True, attach fixture-backed stubs for all six entry points.
-    Live teammate packages stay NotImplemented until their owners land.
+    return ControllerDeps(
+        index_folder=index_folder,
+        extract=extract,
+        parse_query=parse_query,
+        match=match,
+        reveal=reveal,
+        speak=speak,
+        voice_enabled=voice_enabled,
+        language_mode="auto",
+    )
+
+
+def build_app(
+    *,
+    demo_stubs: bool = False,
+    voice_enabled: bool = True,
+) -> AppBundle:
+    """Build orchestration composition root.
+
+    ``--demo-stubs`` keeps the recovery path when teammate packages still raise
+    NotImplementedError.
     """
-    stubs = DemoStubs() if demo_stubs else None
-    return AppBundle(stubs=stubs, demo_stubs=demo_stubs)
+    stubs: DemoStubs | None = None
+    if demo_stubs:
+        stubs = DemoStubs()
+        deps = ControllerDeps(
+            index_folder=stubs.index_folder,
+            extract=stubs.extract,
+            parse_query=stubs.parse_query,
+            match=stubs.match,
+            reveal=stubs.reveal,
+            speak=stubs.speak,
+            voice_enabled=voice_enabled,
+            language_mode="auto",
+        )
+    else:
+        deps = _live_deps(voice_enabled=voice_enabled)
+
+    controller = ClickyController(deps)
+    return AppBundle(controller=controller, stubs=stubs, demo_stubs=demo_stubs)

@@ -21,18 +21,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--folder",
         default="C:/Users/troy/Desktop",
-        help="Folder label shown in the idle window (scan wired in later tasks)",
+        help="Initial scanned folder path",
+    )
+    parser.add_argument(
+        "--no-voice",
+        action="store_true",
+        help="Disable voice (visual-only reveal)",
     )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    bundle = build_app(demo_stubs=args.demo_stubs)
-    del bundle  # reserved for Tasks 3+ pipeline wiring
+    bundle = build_app(demo_stubs=args.demo_stubs, voice_enabled=not args.no_voice)
 
     app = QApplication.instance() or QApplication(sys.argv)
-    window = ClickyWindow(folder_label=args.folder)
+    window = ClickyWindow(controller=bundle.controller, folder=args.folder)
     window.show()
     return app.exec()
 

@@ -42,8 +42,8 @@ def test_composition_builds_with_demo_stubs() -> None:
 
     app = build_app(demo_stubs=True)
     assert app is not None
-    assert hasattr(app, "stubs")
     assert app.stubs is not None
+    assert app.controller is not None
 
 
 def test_idle_window_constructs(qtbot) -> None:
@@ -51,7 +51,7 @@ def test_idle_window_constructs(qtbot) -> None:
 
     from orchestration.window import ClickyWindow
 
-    window = ClickyWindow(folder_label="C:/Users/troy/Desktop")
+    window = ClickyWindow(folder="C:/Users/troy/Desktop")
     qtbot.addWidget(window)
 
     assert window.windowTitle() == "Clicky"
@@ -59,7 +59,7 @@ def test_idle_window_constructs(qtbot) -> None:
     assert window.findChild(QLineEdit, "queryEdit") is not None
     find_btn = window.findChild(QPushButton, "findButton")
     assert find_btn is not None
-    assert find_btn.isEnabled() is False
+    assert find_btn.isEnabled() is True
     status = window.findChild(QLabel, "statusLabel")
     assert status is not None
     assert status.text() == "idle"
