@@ -1,6 +1,6 @@
 ---
 alwaysApply: true
-description: Cody team SDD - ownership, granular commits, PR-only main
+description: Cody team SDD - SPEED MODE direct main
 ---
 
 # Team SDD memory
@@ -15,17 +15,16 @@ Before work: read root README, your component README, and `openspec/specs/<domai
 - SDD review: OpenSpec + README stay SoT; finish with a review pass.
 - Subagents: Grok 4.5 for task implementation and review.
 
-## Git (always branch, PR-only main)
-- Always start work from latest `main` on a new feature branch (`git checkout -b feature/<area>`). Never develop on `main`/`master`.
-- Never push, force-push, commit, or merge locally into `main`/`master`. Landing is PR-only via the PM/QA merge-gate loop.
+## Git (SPEED MODE)
+- Work and push **directly on `main`**. No feature branches or PRs for speed this sprint.
+- Still use granular commits (one concern each) and push after each green slice.
+- Stage only owned/relevant files; never commit secrets (`.env`, keys, tokens).
 - Do not delete remote branches unless the owner explicitly asks.
-- Granular commits: one concern per commit (e.g. stub, then tests, then impl, then docs). No mega-commits dumping a whole component.
-- After each logical slice (tests green): auto-commit with a concise why-focused message, then `git push -u origin HEAD`.
-- Stage only owned/relevant files; never commit secrets (`.env`, keys, tokens). No `--no-verify` unless owner asks.
-- Merge conflicts: rebase onto latest `main`; resolve only owned files; keep contracts additive-only; re-test; commit; push. Never edit a teammate's folder to "win."
+- Merge conflicts: pull `--rebase` on `main`; resolve only owned files; re-test; push.
 
 ## Evolution protocol
 Update this rule only after reviewed work lands. Add a Learned bullet only for a durable, verified, team-wide convention. Cite source+date; replace stale; no secrets/guesses; max 10 learned bullets; the edit MUST appear in the task diff.
 
 ## Learned
 - Breadcrumb segments use QTimer delay; OS reveal fires after the last segment (spec 6.7) - `orchestration/controller.py` 2026-07-18
+- Desktop Cody cursor is a small companion lower-right of the OS mouse; point must keep mock targets measurable - `demo/cody-cursor/` 2026-07-18

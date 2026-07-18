@@ -36,15 +36,14 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Each task: implement with Grok 4.5 subagents per the SDD workflow, then run a review pass before merging.
 - Keep OpenSpec specs and component READMEs updated when behavior or contracts change.
 
-## Git: always branch, granular commits, PR-only main
+## Git: SPEED MODE (direct `main`)
 
-- **Always branch for development.** Update local `main`, then `git checkout -b feature/<area>` (or your seat branch) before any edits. Never commit on `main` / `master`.
-- **Never push or commit directly to `main` / `master`.** Those branches are protected. Landing on main is via PR + the PM/QA merge-gate loop only.
+- **Commit and push on `main`.** No feature branches or PRs for this sprint — maximize speed.
+- **Granular commits required.** One concern per commit — stub, failing tests, implementation slice, docs note, etc.
+- After each logical slice (tests green for that slice), **commit immediately**, then **push immediately** (`git push origin main`).
+- Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens).
 - **Do not delete remote branches** unless the branch owner explicitly asks.
-- **Granular commits required.** One concern per commit — stub, failing tests, implementation slice, docs note, etc. Do not squash a whole component into one mega-commit. Prefer many small why-focused messages.
-- After each logical slice (tests green for that slice), **commit immediately**, then **push immediately** (`git push -u origin HEAD`). Do not wait to be asked; do not batch.
-- Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens). Do not skip hooks unless the owner explicitly asks.
-- On merge conflicts: rebase onto latest `main`, resolve **only files you own**, keep contracts additive-only, re-run your component tests, commit the resolution, then push. If the conflict is inside a teammate's folder, stop and escalate via the contract — do not edit their code to "win."
+- On merge conflicts: `git pull --rebase origin main`, resolve **only files you own**, re-test, push. If the conflict is inside a teammate's folder, stop and escalate via the contract.
 
 ## Team Codex rule pack
 
