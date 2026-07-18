@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PureWindowsPath
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from contracts.interfaces import Extract, IndexFolder, Match, ParseQuery, Reveal, Speak
 from orchestration.pipeline import PipelineResolution, run_pipeline
+
+# Default gap between breadcrumb segments so the UI visibly narrows in (§6.7).
+DEFAULT_SEGMENT_DELAY_MS = 250
 
 
 @dataclass(frozen=True)
@@ -20,6 +24,7 @@ class ControllerDeps:
     speak: Speak
     voice_enabled: bool = True
     language_mode: str = "auto"
+    segment_delay_ms: int = DEFAULT_SEGMENT_DELAY_MS
 
 
 class _PipelineWorker(QObject):
@@ -72,6 +77,11 @@ class ClickyController(QObject):
         self._thread: QThread | None = None
         self._worker: _PipelineWorker | None = None
         self._pending: PipelineResolution | None = None
+        self._segments: list[str] = []
+        self._segment_index = 0
+        self._anim_timer = QTimer(self)
+        self._anim_timer.setSingleShot(True)
+        self._anim_timer.timeout.connect(self._on_segment_tick)
 
     @property
     def state(self) -> str:
@@ -118,7 +128,7 @@ class ClickyController(QObject):
         assert isinstance(resolution, PipelineResolution)
         self._pending = resolution
         self._set_state("revealing")
-        self._run_reveal_sequence(resolution)
+        self._start_reveal_animation(resolution)
 
     @Slot(str)
     def _on_pipeline_failed(self, message: str) -> None:
@@ -134,11 +144,39 @@ class ClickyController(QObject):
             return "en"
         return mode
 
-    def _run_reveal_sequence(self, resolution: PipelineResolution) -> None:
-        segments = resolution.animation["segments"]
-        for index, segment in enumerate(segments):
-            self.segment_lit.emit(segment, index)
+    def _start_reveal_animation(self, resolution: PipelineResolution) -> None:
+        """Light segments in sequence, then fire OS reveal on the final tick (§6.7)."""
+        self._segments = list(resolution.animation["segments"])
+        self._segment_index = 0
+        if not self._segments:
+            self._finish_reveal(resolution)
+            return
+        # First segment immediately, then delay between the rest.
+        self._on_segment_tick()
 
+    @Slot()
+    def _on_segment_tick(self) -> None:
+        resolution = self._pending
+        if resolution is None or self._state != "revealing":
+            return
+
+        index = self._segment_index
+        if index >= len(self._segments):
+            return
+
+        segment = self._segments[index]
+        self.segment_lit.emit(segment, index)
+        self._segment_index = index + 1
+
+        if self._segment_index >= len(self._segments):
+            # Final segment lit — land OS reveal as the animation completes.
+            self._finish_reveal(resolution)
+            return
+
+        delay = max(0, int(self._deps.segment_delay_ms))
+        self._anim_timer.start(delay)
+
+    def _finish_reveal(self, resolution: PipelineResolution) -> None:
         ok = bool(self._deps.reveal(resolution.path))
         self.reveal_triggered.emit(ok)
         if not ok:
@@ -148,8 +186,6 @@ class ClickyController(QObject):
 
         speak_ok = True
         if self._deps.voice_enabled:
-            from pathlib import PureWindowsPath
-
             filename = PureWindowsPath(resolution.path).name
             lang = self._resolve_language_mode(resolution.language_mix)
             speak_ok = bool(self._deps.speak(filename, lang))
