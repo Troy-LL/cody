@@ -4,4 +4,4 @@
 - [x] Voice stub `speak` → `True` + config loader + `smoke_tl.py`
 - [x] Reveal stub + Explorer select TDD on `feature/reveal` (separate branch)
 - [x] Full `speak` implementation + unit tests
-- [ ] Manual checklist + open PRs for `feature/reveal` and `feature/voice`
+- [x] Manual checklist doc + open PRs for `feature/reveal` and `feature/voice`
