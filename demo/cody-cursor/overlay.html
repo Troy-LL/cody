@@ -18,14 +18,13 @@
       overflow: hidden;
       background: transparent;
       font-family: "Segoe UI", system-ui, sans-serif;
-      /* Keep the real OS cursor; Cody is a separate companion sprite */
       cursor: default;
     }
-    /* Click-through except HUD controls */
     .stage {
       position: fixed;
       inset: 0;
       pointer-events: none;
+      z-index: 10;
     }
     #cody-cursor {
       position: fixed;
@@ -33,18 +32,43 @@
       height: 28px;
       left: 0;
       top: 0;
-      /* Sprite top-left sits at companion slot (lower-right of mouse) */
-      transform: none;
       pointer-events: none;
       z-index: 2147483646;
-      will-change: left, top, opacity;
+      will-change: left, top;
       filter: drop-shadow(0 1px 3px rgba(10, 22, 40, 0.4));
-      transition: opacity 120ms ease;
     }
     #cody-cursor img {
       display: block;
       width: 28px;
       height: 28px;
+    }
+    #caption {
+      position: fixed;
+      max-width: 220px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(10, 22, 40, 0.92);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.35;
+      pointer-events: none;
+      z-index: 2147483647;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      box-shadow: 0 4px 14px rgba(10, 22, 40, 0.25);
+    }
+    #caption::before {
+      content: "";
+      position: absolute;
+      left: -5px;
+      top: 10px;
+      border: 5px solid transparent;
+      border-right-color: rgba(10, 22, 40, 0.92);
+    }
+    #caption.show {
+      opacity: 1;
+      transform: translateY(0);
     }
     .hud {
       position: fixed;
@@ -62,7 +86,7 @@
       background: rgba(10, 22, 40, 0.82);
       color: #fff;
       font-size: 13px;
-      max-width: min(520px, calc(100vw - 32px));
+      max-width: min(560px, calc(100vw - 32px));
     }
     .hud button {
       border: 0;
@@ -78,13 +102,40 @@
       background: transparent;
       border: 1px solid rgba(255,255,255,0.35);
     }
+    .hud button.listening {
+      background: #c0392b;
+    }
+    .mic-meter {
+      display: none;
+      align-items: flex-end;
+      gap: 3px;
+      height: 22px;
+      padding: 0 4px;
+    }
+    .mic-meter.on { display: inline-flex; }
+    .mic-meter span {
+      display: block;
+      width: 4px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.22);
+      transition: height 60ms linear, background 60ms linear;
+    }
+    .mic-meter span.lit {
+      background: #5dade2;
+    }
+    .mic-meter span.hot {
+      background: #2ecc71;
+    }
+    .mic-meter span.peak {
+      background: #f1c40f;
+    }
     .hud kbd {
       font: inherit;
       padding: 1px 5px;
       border-radius: 4px;
       background: rgba(255,255,255,0.12);
     }
-    /* Mock “desktop” sources for local demo when not over a real page */
     .mock-desktop {
       position: fixed;
       inset: 0;
@@ -94,16 +145,15 @@
         linear-gradient(180deg, #f4f7fb 0%, #e8eef6 100%);
       z-index: 0;
     }
-    .mock-desktop[hidden] { display: none !important; }
+    .mock-desktop.hidden { display: none !important; }
     .file {
       position: absolute;
-      width: 88px;
+      width: 96px;
       text-align: center;
       color: var(--cody-ink);
       font-size: 11px;
       line-height: 1.25;
-      pointer-events: auto;
-      cursor: default;
+      pointer-events: none;
     }
     .file .icon {
       width: 56px;
@@ -132,15 +182,11 @@
       opacity: 0;
       z-index: 2147483645;
     }
-    .ring.pop {
-      animation: pop 600ms ease-out forwards;
-    }
+    .ring.pop { animation: pop 600ms ease-out forwards; }
     @keyframes pop {
       0% { opacity: 0.9; transform: scale(0.4); }
       100% { opacity: 0; transform: scale(2.2); }
     }
-    body.embedded .mock-desktop { display: none !important; }
-    body.embedded { background: transparent; }
   </style>
 </head>
 <body>
@@ -161,63 +207,104 @@
 
   <div class="stage">
     <div id="cody-cursor" aria-hidden="true">
-      <img id="cody-cursor-img" alt="" width="48" height="48" />
+      <img id="cody-cursor-img" alt="" width="28" height="28" />
     </div>
+    <div id="caption" role="status" aria-live="polite"></div>
     <div class="ring" id="ring" aria-hidden="true"></div>
   </div>
 
   <div class="hud" id="hud">
-    <span id="status">Cody companion (lower-right of your cursor)</span>
-    <button type="button" id="btn-point" title="Point at Lazada receipt">Point → Lazada</button>
+    <span id="status">Say “where’s Lazada” or use the mic</span>
+    <button type="button" id="btn-mic">🎤 Listen</button>
+    <div class="mic-meter" id="mic-meter" aria-hidden="true" title="Mic level">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <button type="button" id="btn-point">Point → Lazada</button>
     <button type="button" id="btn-shopee" class="secondary">Point → Shopee</button>
     <button type="button" id="btn-follow" class="secondary">Follow again</button>
-    <span><kbd>1</kbd>/<kbd>2</kbd> point · <kbd>Esc</kbd> follow</span>
+    <span><kbd>1</kbd>/<kbd>2</kbd> · <kbd>V</kbd> mic · <kbd>Esc</kbd> follow</span>
   </div>
 
   <script>
     (function () {
       const ASSET_DEFAULT = "../../assets/cody-cursor/cursor-default.svg";
       const ASSET_POINT = "../../assets/cody-cursor/cursor-point.svg";
-      /** Companion sits lower-right of the real mouse tip (px). */
       const SLOT = { x: 18, y: 22 };
+      const CAPTION_GAP = { x: 34, y: -4 };
       const SIZE = 28;
-      /** Soft spring toward slot — not locked to the OS cursor. */
       const SPRING = 0.12;
       const DAMP = 0.78;
+      const ANIM_MS = 900;
 
+      /** Only hide mock desktop when host explicitly asks (?nomock=1). */
       const params = new URLSearchParams(location.search);
-      const embedded = params.get("embed") === "1" || window.parent !== window;
-      if (embedded) document.body.classList.add("embedded");
+      const hideMock = params.get("nomock") === "1";
 
       const el = document.getElementById("cody-cursor");
       const img = document.getElementById("cody-cursor-img");
+      const caption = document.getElementById("caption");
       const ring = document.getElementById("ring");
       const status = document.getElementById("status");
       const mock = document.getElementById("mock-desktop");
+      const btnMic = document.getElementById("btn-mic");
+      const micMeter = document.getElementById("mic-meter");
+      const micBars = micMeter ? micMeter.querySelectorAll("span") : [];
+
+      if (hideMock) mock.classList.add("hidden");
 
       img.src = ASSET_DEFAULT;
-      img.width = SIZE;
-      img.height = SIZE;
 
-      let mode = "follow"; // follow | animating | pointed
-      let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
+      const THOUGHTS = {
+        lazada: "I think this is your Lazada receipt.",
+        shopee: "Looks like the Shopee invoice.",
+        notes: "These are your meeting notes.",
+      };
+
+      const VOICE_RULES = [
+        { re: /\b(lazada|lazad[ao]?|resibo.*lazada|receipt.*lazada)\b/i, id: "lazada" },
+        { re: /\b(shopee|shope|invoice.*shopee)\b/i, id: "shopee" },
+        { re: /\b(notes?|meeting)\b/i, id: "notes" },
+      ];
+
+      let mode = "follow";
+      let mouse = { x: innerWidth * 0.45, y: innerHeight * 0.4 };
       let pos = { x: mouse.x + SLOT.x, y: mouse.y + SLOT.y };
       let vel = { x: 0, y: 0 };
       let target = null;
       let animStart = 0;
       let animFrom = { x: 0, y: 0 };
       let animTo = { x: 0, y: 0 };
-      const ANIM_MS = 900;
+      let listening = false;
+      let recognition = null;
+      let micStream = null;
+      let audioCtx = null;
+      let analyser = null;
+      let meterRaf = 0;
+      let levelSmooth = 0;
 
       function setSprite(pointing) {
         img.src = pointing ? ASSET_POINT : ASSET_DEFAULT;
       }
 
       function place(x, y) {
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
         pos.x = x;
         pos.y = y;
         el.style.left = x + "px";
         el.style.top = y + "px";
+        // Caption floats beside the small Cody cursor
+        caption.style.left = x + CAPTION_GAP.x + "px";
+        caption.style.top = y + CAPTION_GAP.y + "px";
+      }
+
+      function showCaption(text) {
+        caption.textContent = text || "";
+        caption.classList.toggle("show", Boolean(text));
+      }
+
+      function hideCaption() {
+        caption.classList.remove("show");
+        caption.textContent = "";
       }
 
       function slotPos() {
@@ -232,32 +319,48 @@
         const node = document.querySelector('.file[data-id="' + id + '"] .icon');
         if (!node) return null;
         const r = node.getBoundingClientRect();
-        return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: node.closest(".file") };
+        // Hidden/display:none icons report 0×0 — that was the point-break bug
+        if (r.width < 2 || r.height < 2) return null;
+        return {
+          x: r.left + r.width / 2,
+          y: r.top + r.height / 2,
+          el: node.closest(".file"),
+        };
       }
 
       function clearHighlight() {
         document.querySelectorAll(".file.highlight").forEach((n) => n.classList.remove("highlight"));
       }
 
-      function pointAt(id) {
-        if (embedded && !document.querySelector('.file[data-id="' + id + '"]')) {
-          status.textContent = "No mock target in embed — send cody-point from host";
+      function pointAt(id, thought) {
+        if (hideMock) {
+          status.textContent = "Mock desktop hidden — open without ?nomock=1";
           return;
         }
         const dest = fileCenter(id);
-        if (!dest) return;
+        if (!dest) {
+          status.textContent = "Can't see that file yet — is the mock desktop visible?";
+          showCaption("I can't find that source on screen.");
+          return;
+        }
         mode = "animating";
         setSprite(true);
         clearHighlight();
         vel.x = 0;
         vel.y = 0;
-        // Tip of small cursor ≈ center of sprite for arrive
-        animFrom = { x: pos.x + SIZE * 0.2, y: pos.y + SIZE * 0.15 };
-        animTo = { x: dest.x, y: dest.y };
+        animFrom = { x: pos.x, y: pos.y };
+        animTo = {
+          x: dest.x - SIZE * 0.25,
+          y: dest.y - SIZE * 0.25,
+        };
         animStart = performance.now();
         target = dest;
-        status.textContent = "Cody left your cursor — pointing at " + id + "…";
-        parent.postMessage({ type: "cody-status", mode: "animating", target: id }, "*");
+        const line = thought || THOUGHTS[id] || ("I think this is " + id + ".");
+        showCaption(line);
+        status.textContent = "Pointing at " + id + "…";
+        try {
+          parent.postMessage({ type: "cody-status", mode: "animating", target: id }, "*");
+        } catch (_) {}
       }
 
       function resumeFollow() {
@@ -266,50 +369,219 @@
         clearHighlight();
         vel.x = 0;
         vel.y = 0;
-        status.textContent = "Cody companion (lower-right of your cursor)";
-        parent.postMessage({ type: "cody-status", mode: "follow" }, "*");
+        hideCaption();
+        status.textContent = 'Say “where’s Lazada” or use the mic';
+        try {
+          parent.postMessage({ type: "cody-status", mode: "follow" }, "*");
+        } catch (_) {}
+      }
+
+      function matchVoice(transcript) {
+        const t = String(transcript || "").trim();
+        if (!t) return null;
+        for (let i = 0; i < VOICE_RULES.length; i++) {
+          if (VOICE_RULES[i].re.test(t)) return VOICE_RULES[i].id;
+        }
+        // Loose: "where's X" / "where is X"
+        const m = t.match(/where'?s?\s+(?:is\s+)?(.+)/i);
+        if (m) {
+          const rest = m[1];
+          for (let i = 0; i < VOICE_RULES.length; i++) {
+            if (VOICE_RULES[i].re.test(rest)) return VOICE_RULES[i].id;
+          }
+        }
+        return null;
+      }
+
+      function handleHeard(transcript) {
+        status.textContent = "Heard: “" + transcript + "”";
+        const id = matchVoice(transcript);
+        if (!id) {
+          showCaption("I didn't catch a file — try “where’s Lazada”.");
+          return;
+        }
+        showCaption("Okay — looking for " + id + "…");
+        pointAt(id, THOUGHTS[id]);
+      }
+
+      function paintMeter(level) {
+        if (!micBars.length) return;
+        const n = micBars.length;
+        const lit = Math.round(Math.min(1, level) * n);
+        for (let i = 0; i < n; i++) {
+          const bar = micBars[i];
+          bar.classList.remove("lit", "hot", "peak");
+          const active = i < lit;
+          const h = active ? 6 + Math.round(((i + 1) / n) * 14 * Math.max(0.35, level)) : 3;
+          bar.style.height = h + "px";
+          if (active) {
+            if (i >= n - 2) bar.classList.add("peak");
+            else if (i >= n - 4) bar.classList.add("hot");
+            else bar.classList.add("lit");
+          }
+        }
+      }
+
+      function stopMeter() {
+        if (meterRaf) {
+          cancelAnimationFrame(meterRaf);
+          meterRaf = 0;
+        }
+        if (micStream) {
+          micStream.getTracks().forEach(function (t) { t.stop(); });
+          micStream = null;
+        }
+        if (audioCtx) {
+          try { audioCtx.close(); } catch (_) {}
+          audioCtx = null;
+        }
+        analyser = null;
+        levelSmooth = 0;
+        if (micMeter) {
+          micMeter.classList.remove("on");
+          micMeter.setAttribute("aria-hidden", "true");
+        }
+        paintMeter(0);
+      }
+
+      function meterLoop() {
+        if (!analyser) return;
+        const data = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        // Amplify speech-range levels for a readable bar
+        const boosted = Math.min(1, rms * 4.2);
+        levelSmooth = levelSmooth * 0.65 + boosted * 0.35;
+        paintMeter(levelSmooth);
+        meterRaf = requestAnimationFrame(meterLoop);
+      }
+
+      function startMeter() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          status.textContent = "Mic meter needs getUserMedia (HTTPS or localhost)";
+          return Promise.resolve();
+        }
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
+          micStream = stream;
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioCtx.createMediaStreamSource(stream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.7;
+          source.connect(analyser);
+          if (micMeter) {
+            micMeter.classList.add("on");
+            micMeter.setAttribute("aria-hidden", "false");
+          }
+          meterLoop();
+        }).catch(function (err) {
+          status.textContent = "Mic permission denied — " + (err && err.message ? err.message : "blocked");
+        });
+      }
+
+      function setupSpeech() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+          btnMic.disabled = true;
+          btnMic.title = "Speech recognition not supported in this browser";
+          status.textContent = "Voice needs Chrome/Edge — use buttons or 1/2";
+          return;
+        }
+        recognition = new SR();
+        recognition.lang = "en-PH";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 3;
+        recognition.continuous = false;
+
+        recognition.onstart = function () {
+          listening = true;
+          btnMic.classList.add("listening");
+          btnMic.textContent = "Listening…";
+          status.textContent = "Listening — say “where’s Lazada”";
+          startMeter();
+        };
+        recognition.onend = function () {
+          listening = false;
+          btnMic.classList.remove("listening");
+          btnMic.textContent = "🎤 Listen";
+          stopMeter();
+        };
+        recognition.onerror = function (ev) {
+          listening = false;
+          btnMic.classList.remove("listening");
+          btnMic.textContent = "🎤 Listen";
+          stopMeter();
+          status.textContent = "Mic error: " + (ev.error || "unknown");
+        };
+        recognition.onresult = function (ev) {
+          let best = "";
+          for (let i = 0; i < ev.results.length; i++) {
+            for (let j = 0; j < ev.results[i].length; j++) {
+              const alt = ev.results[i][j].transcript;
+              if (alt && alt.length > best.length) best = alt;
+            }
+          }
+          handleHeard(best);
+        };
+      }
+
+      function toggleMic() {
+        if (!recognition) {
+          status.textContent = "Speech recognition unavailable";
+          return;
+        }
+        if (listening) {
+          try { recognition.stop(); } catch (_) {}
+          stopMeter();
+          return;
+        }
+        try {
+          recognition.start();
+        } catch (_) {
+          status.textContent = "Mic busy — try again";
+        }
       }
 
       function onMove(x, y) {
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
         mouse.x = x;
         mouse.y = y;
       }
 
-      window.addEventListener("mousemove", (e) => onMove(e.clientX, e.clientY));
+      window.addEventListener("mousemove", function (e) {
+        onMove(e.clientX, e.clientY);
+      });
 
-      window.addEventListener("message", (e) => {
+      window.addEventListener("message", function (e) {
         const data = e.data || {};
-        if (data.type === "cody-mouse" && typeof data.x === "number") {
-          onMove(data.x, data.y);
-        }
+        if (data.type === "cody-mouse" && typeof data.x === "number") onMove(data.x, data.y);
         if (data.type === "cody-point") {
           if (typeof data.x === "number" && typeof data.y === "number") {
             mode = "animating";
             setSprite(true);
             vel.x = 0;
             vel.y = 0;
-            animFrom = { x: pos.x + SIZE * 0.2, y: pos.y + SIZE * 0.15 };
-            animTo = { x: data.x, y: data.y };
+            animFrom = { x: pos.x, y: pos.y };
+            animTo = { x: data.x - SIZE * 0.25, y: data.y - SIZE * 0.25 };
             animStart = performance.now();
             target = { x: data.x, y: data.y, el: null };
-            status.textContent = "Cody left your cursor — pointing…";
+            showCaption(data.thought || "I think this is it.");
           } else if (data.id) {
-            if (embedded) mock.hidden = false;
-            document.body.classList.remove("embedded");
-            pointAt(data.id);
+            pointAt(data.id, data.thought);
           }
         }
         if (data.type === "cody-follow") resumeFollow();
-        if (data.type === "cody-hide-mock") {
-          mock.hidden = true;
-          document.body.classList.add("embedded");
-        }
+        if (data.type === "cody-heard" && data.transcript) handleHeard(data.transcript);
       });
 
       function tick(now) {
         if (mode === "follow") {
           const slot = slotPos();
-          // Independent spring toward lower-right slot (not glued 1:1)
           const ax = (slot.x - pos.x) * SPRING;
           const ay = (slot.y - pos.y) * SPRING;
           vel.x = (vel.x + ax) * DAMP;
@@ -318,36 +590,52 @@
         } else if (mode === "animating") {
           const t = Math.min(1, (now - animStart) / ANIM_MS);
           const e = easeInOutCubic(t);
-          const tipX = animFrom.x + (animTo.x - animFrom.x) * e;
-          const tipY = animFrom.y + (animTo.y - animFrom.y) * e;
-          place(tipX - SIZE * 0.2, tipY - SIZE * 0.15);
+          place(
+            animFrom.x + (animTo.x - animFrom.x) * e,
+            animFrom.y + (animTo.y - animFrom.y) * e
+          );
           if (t >= 1) {
             mode = "pointed";
             if (target && target.el) target.el.classList.add("highlight");
-            ring.style.left = animTo.x + "px";
-            ring.style.top = animTo.y + "px";
+            ring.style.left = (target ? target.x : animTo.x) + "px";
+            ring.style.top = (target ? target.y : animTo.y) + "px";
             ring.classList.remove("pop");
             void ring.offsetWidth;
             ring.classList.add("pop");
-            status.textContent = "Found it — Cody pointed at the source";
-            parent.postMessage({ type: "cody-status", mode: "pointed" }, "*");
+            status.textContent = "Found it";
+            try {
+              parent.postMessage({ type: "cody-status", mode: "pointed" }, "*");
+            } catch (_) {}
           }
+        } else if (mode === "pointed") {
+          // Stay put; keep caption parked next to Cody
+          place(pos.x, pos.y);
         }
         requestAnimationFrame(tick);
       }
+
+      setupSpeech();
       requestAnimationFrame(tick);
 
-      document.getElementById("btn-point").onclick = () => pointAt("lazada");
-      document.getElementById("btn-shopee").onclick = () => pointAt("shopee");
+      document.getElementById("btn-point").onclick = function () {
+        pointAt("lazada");
+      };
+      document.getElementById("btn-shopee").onclick = function () {
+        pointAt("shopee");
+      };
       document.getElementById("btn-follow").onclick = resumeFollow;
+      btnMic.onclick = toggleMic;
 
-      window.addEventListener("keydown", (e) => {
+      window.addEventListener("keydown", function (e) {
         if (e.key === "1") pointAt("lazada");
         if (e.key === "2") pointAt("shopee");
+        if (e.key === "v" || e.key === "V") toggleMic();
         if (e.key === "Escape") resumeFollow();
       });
 
-      parent.postMessage({ type: "cody-ready", slot: SLOT, size: SIZE }, "*");
+      try {
+        parent.postMessage({ type: "cody-ready", slot: SLOT, size: SIZE }, "*");
+      } catch (_) {}
       place(pos.x, pos.y);
     })();
   </script>
