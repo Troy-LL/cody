@@ -1,6 +1,6 @@
 # P4 matcher (Cody) implementation plan
 
-Single plan for component 4 of Clicky, sized for the 3-hour sprint (spec 10.4). Companion to `docs/p4-matcher-prd.md`. Spec references are to `/workspace/spec.md`.
+Single plan for component 4 of Cody, sized for the 3-hour sprint (spec 10.4). Companion to `docs/p4-matcher-prd.md`. Spec references are to `/workspace/spec.md`.
 
 ## Context
 

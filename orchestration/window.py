@@ -1,4 +1,4 @@
-"""PySide6 Clicky shell wired to ClickyController."""
+"""PySide6 Cody shell wired to CodyController."""
 
 from __future__ import annotations
 
@@ -16,22 +16,22 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from orchestration.controller import ClickyController
+from orchestration.controller import CodyController
 from orchestration.pipeline import PipelineResolution
 
 
-class ClickyWindow(QMainWindow):
+class CodyWindow(QMainWindow):
     """Happy-path UI: folder, query, Find, breadcrumb, reasoning."""
 
     def __init__(
         self,
-        controller: ClickyController | None = None,
+        controller: CodyController | None = None,
         folder: str = "",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._controller = controller
-        self.setWindowTitle("Clicky")
+        self.setWindowTitle("Cody")
         self.setMinimumWidth(560)
 
         central = QWidget(self)

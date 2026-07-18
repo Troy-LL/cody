@@ -14,7 +14,7 @@
   {
     "path": "C:/Users/troy/Desktop/meeting_notes_july.docx",
     "extractable": true,
-    "text_snippet": "Sprint planning notes — blockers, owners, and demo checklist for Clicky MVP.",
+    "text_snippet": "Sprint planning notes — blockers, owners, and demo checklist for Cody MVP.",
     "extraction_method": "docx_paragraphs"
   },
   {
@@ -44,7 +44,7 @@
   {
     "path": "C:/Users/troy/Desktop/readme_project.txt",
     "extractable": true,
-    "text_snippet": "Clicky demo notes — messy Desktop fixture for Taglish queries.",
+    "text_snippet": "Cody demo notes — messy Desktop fixture for Taglish queries.",
     "extraction_method": "plain_text"
   }
 ]

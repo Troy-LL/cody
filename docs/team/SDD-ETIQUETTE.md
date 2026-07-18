@@ -1,4 +1,4 @@
-# SDD etiquette (Clicky / Cody sprint)
+# SDD etiquette (Cody sprint)
 
 Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`](../../spec.md). Process requirements live in [`openspec/specs/team-workflow/spec.md`](../../openspec/specs/team-workflow/spec.md).
 
@@ -44,7 +44,11 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens). Do not skip hooks unless the owner explicitly asks.
 - On merge conflicts: rebase onto latest `main`, resolve **only files you own**, keep contracts additive-only, re-run your component tests, commit the resolution, then push. If the conflict is inside a teammate's folder, stop and escalate via the contract — do not edit their code to "win."
 
+## Team Cursor rule
+
+- Checked-in rule: [`team-sdd-memory.mdc`](team-sdd-memory.mdc). Copy it locally to `.cursor/rules/team-sdd-memory.mdc` so Cursor always-applies it (`.cursor/` is gitignored on purpose).
+
 ## Team rule evolution
 
-- The always-on rule [`.cursor/rules/team-sdd-memory.mdc`](../../.cursor/rules/team-sdd-memory.mdc) may gain **Learned** bullets only after reviewed work lands.
+- [`team-sdd-memory.mdc`](team-sdd-memory.mdc) may gain **Learned** bullets only after reviewed work lands.
 - New bullets must be durable, verified, team-wide conventions; cite source + date; replace stale lines; no secrets or guesses; max 10 learned bullets; must appear in the task diff.
