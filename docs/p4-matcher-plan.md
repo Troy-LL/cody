@@ -1,6 +1,8 @@
 # P4 matcher (Cody) implementation plan
 
-Single plan for component 4 of Cody, sized for the 3-hour sprint (spec 10.4). Companion to `docs/p4-matcher-prd.md`. Spec references are to `/workspace/spec.md`.
+Single plan for component 4 of Clicky, sized for the 3-hour sprint (spec 10.4). Companion to `docs/p4-matcher-prd.md`. Spec references are to `/workspace/spec.md`.
+
+Execution package for the parent/subagent loop (gap status, phase files, conflict firewall): [`docs/p4-sprint/overview.md`](p4-sprint/overview.md).
 
 ## Context
 
@@ -96,7 +98,7 @@ Verification. Runtime, execute the README's example exactly as written in a fres
 
 - Contracts are frozen. Any output addition is optional-field-only with a shout-out (6.9 rule 2).
 - Never edit another owner's folder. Upstream problems are contract conversations, not cross-folder patches (11.2).
-- Stub merges to `main` first, real work continues on `feature/matcher`, small merges when green (11.3).
+- Stub merges via PR first, real work continues on `rohart-branch` (Person 5 working branch for this seat), small merges when green (11.3).
 - Fixtures are additive-only. Add records, never rewrite existing ones (11.2).
 - If the real matcher is broken at a checkpoint, keep the stub and move on rather than debugging past the timebox (10.4).
 - Run `/deslop` before each commit.

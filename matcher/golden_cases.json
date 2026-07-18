@@ -1,0 +1,62 @@
+[
+  {
+    "id": "lazada_receipt_taglish",
+    "intent": {
+      "raw_query": "yung resibo ko sa Lazada last week",
+      "description": "a receipt from Lazada",
+      "time_hint": {
+        "type": "relative",
+        "value": "last_week",
+        "resolved_range": ["2026-07-06T00:00:00Z", "2026-07-12T23:59:59Z"]
+      },
+      "type_hint": null,
+      "language_mix": "taglish"
+    },
+    "expected_path": "C:/Users/troy/Desktop/receipt_lazada.pdf",
+    "note": "Demo Taglish + last_week; content and date both point at the receipt"
+  },
+  {
+    "id": "shopee_invoice_pdf",
+    "intent": {
+      "raw_query": "yung PDF ng Shopee invoice",
+      "description": "a Shopee invoice PDF",
+      "time_hint": null,
+      "type_hint": "pdf",
+      "language_mix": "taglish"
+    },
+    "expected_path": "C:/Users/troy/Desktop/invoice_shopee.pdf",
+    "note": "type_hint pdf should favor the Shopee invoice"
+  },
+  {
+    "id": "meeting_notes_this_week",
+    "intent": {
+      "raw_query": "meeting notes from this week",
+      "description": "meeting notes",
+      "time_hint": {
+        "type": "relative",
+        "value": "this_week",
+        "resolved_range": ["2026-07-13T00:00:00Z", "2026-07-19T23:59:59Z"]
+      },
+      "type_hint": null,
+      "language_mix": "en"
+    },
+    "expected_path": "C:/Users/troy/Desktop/meeting_notes_july.docx",
+    "note": "modified_at in this_week range"
+  },
+  {
+    "id": "lazada_narrow_day_excludes_screenshot",
+    "intent": {
+      "raw_query": "yung resibo ko sa Lazada last week",
+      "description": "a receipt from Lazada",
+      "time_hint": {
+        "type": "relative",
+        "value": "last_week",
+        "resolved_range": ["2026-07-10T00:00:00Z", "2026-07-10T23:59:59Z"]
+      },
+      "type_hint": null,
+      "language_mix": "taglish"
+    },
+    "expected_path": "C:/Users/troy/Desktop/receipt_lazada.pdf",
+    "note": "Soft time hint: screenshot shares Lazada keyword but is out_of_range for this day window"
+  }
+]
