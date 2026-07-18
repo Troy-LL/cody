@@ -46,9 +46,10 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 
 ## Team Cursor rule
 
-- Checked-in rule: [`team-sdd-memory.mdc`](team-sdd-memory.mdc). Copy it locally to `.cursor/rules/team-sdd-memory.mdc` so Cursor always-applies it (`.cursor/` is gitignored on purpose).
+- Always-on rule: [`.cursor/rules/team-sdd-memory.mdc`](../../.cursor/rules/team-sdd-memory.mdc) (tracked in git). Mirror: [`team-sdd-memory.mdc`](team-sdd-memory.mdc).
+- Do **not** add `.cursor/` to `.gitignore` — OpenSpec skills/commands and the team rule live there.
 
 ## Team rule evolution
 
-- [`team-sdd-memory.mdc`](team-sdd-memory.mdc) may gain **Learned** bullets only after reviewed work lands.
+- The always-on rule may gain **Learned** bullets only after reviewed work lands.
 - New bullets must be durable, verified, team-wide conventions; cite source + date; replace stale lines; no secrets or guesses; max 10 learned bullets; must appear in the task diff.
