@@ -22,10 +22,16 @@ dependencies = [
 overlay = [
     "uiautomation>=2.0.18",
     "pyinstaller>=6.0",
+    "Pillow>=10.0",
+    "pytesseract>=0.3.10",
+    "pywebview>=5.0",
+    "SpeechRecognition>=3.10",
+    "sounddevice>=0.5",
+    "numpy>=1.26",
 ]
 
 [project.scripts]
-cody-overlay = "overlay.tk_app:main"
+cody-overlay = "overlay.tk_lens:main"
 
 [tool.setuptools.packages.find]
 include = [

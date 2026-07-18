@@ -1,5 +1,5 @@
-"""python -m overlay → visible Tk Cody window."""
+"""python -m overlay → Tkinter Cody lens on your desktop."""
 
-from overlay.tk_app import main
+from overlay.tk_lens import main
 
 raise SystemExit(main())
