@@ -1,0 +1,29 @@
+{
+  "name": "confetti-club",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Party game website: host a room, share a 4-letter code, play mini-games together.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@fontsource/lilita-one": "5.2.8",
+    "@fontsource/outfit": "5.2.8",
+    "next": "15.5.20",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}
