@@ -27,7 +27,8 @@ Allow the mic when the browser asks (localhost is fine).
 | Input | Action |
 |-------|--------|
 | Move mouse | Cody companion stays lower-right |
-| **Listen** or `V` (release once) | Start/stop voice listen + volume meter |
+| **Listen** (click) | Toggle voice listen + volume meter |
+| Hold `V` | Push-to-talk — listen while held, stop on release |
 | Say “where’s Lazada” / “Shopee” / “notes” | Point + caption |
 | `1` | Point at `receipt_lazada.pdf` |
 | `2` | Point at `invoice_shopee.pdf` |
