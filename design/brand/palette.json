@@ -1,0 +1,26 @@
+{
+  "name": "clicky-signal-blue",
+  "description": "Signal-blue palette for Clicky's optional §6.8 pointer overlay (arrow/ring assets). Not used by orchestration's §6.7 breadcrumb.",
+  "tokens": {
+    "primary": {
+      "value": "#2563EB",
+      "role": "arrow fill, ring stroke, the single confident color of the pointer"
+    },
+    "light": {
+      "value": "#93C5FD",
+      "role": "highlight edge, glow falloff, motion trail"
+    },
+    "deep": {
+      "value": "#1E3A8A",
+      "role": "shadow edge, contact shading where the tip meets the icon"
+    },
+    "charcoal": {
+      "value": "#0F172A",
+      "role": "outline/stroke on light Explorer backgrounds for contrast"
+    },
+    "paper": {
+      "value": "#F8FAFC",
+      "role": "outline/stroke or fill on dark Explorer backgrounds for contrast"
+    }
+  }
+}
