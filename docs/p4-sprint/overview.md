@@ -41,9 +41,9 @@ Phase 3 smoke plus Phase 6 distractor goldens are the proof for A.
 - `how` before touching unfamiliar Responses API wiring
 - `unslop` on every prose surface (README, plan edits, PR body)
 - `/deslop` before each commit
-- `babysit` after the PR opens
+- Keep the PR merge-ready after it opens
 - `show-me-your-work` if the parent cloud loop runs unattended across phases
-- Repo agents `.cursor/agents/p4-matcher-planner.md` and `p4-matcher-prd.md` when revising plan or PRD
+- Repo agents `.codex/agents/p4-matcher-planner.md` and `p4-matcher-prd.md` when revising plan or PRD
 
 ## Phases
 
@@ -70,7 +70,7 @@ Implementer non-negotiables from poteto-mode:
 - Run `interrogate` only if someone contests Option A or the failure-raise shape.
 - `/deslop` every diff before commit. `unslop` every prose surface.
 - Keep a short decision trail via `show-me-your-work` when the cloud parent runs multi-phase unattended.
-- After opening the PR, run Cursor's `babysit` skill.
+- After opening the PR, keep it merge-ready until the gate lands it.
 - Granular commits on `rohart-branch`. One concern each. Push after each green slice (team SDD rule). Never secrets.
 
 Conflict discipline for this seat:

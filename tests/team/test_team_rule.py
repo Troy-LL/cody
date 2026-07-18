@@ -16,7 +16,7 @@ REQUIRED_PHRASES = [
     "Contract discipline",
     "TDD",
     "SDD review",
-    "Cursor Grok 4.5",
+    "Grok 4.5",
     "Always start work",
     "Never push",
     "Do not delete remote branches",

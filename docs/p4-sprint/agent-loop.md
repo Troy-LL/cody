@@ -2,7 +2,7 @@
 
 Back to [overview.md](overview.md).
 
-Parent model is Cursor Grok 4.5 High. Subagents use Claude Sonnet 5 (`claude-sonnet-5-thinking-medium` is the available Sonnet 5 slug in this environment; there is no separate "high" Sonnet 5 listing).
+Parent model is Grok 4.5 High. Subagents use Claude Sonnet 5 (`claude-sonnet-5-thinking-medium`).
 
 ## Topology
 
