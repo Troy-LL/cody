@@ -44,10 +44,12 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens). Do not skip hooks unless the owner explicitly asks.
 - On merge conflicts: rebase onto latest `main`, resolve **only files you own**, keep contracts additive-only, re-run your component tests, commit the resolution, then push. If the conflict is inside a teammate's folder, stop and escalate via the contract — do not edit their code to "win."
 
-## Team Cursor rule
+## Team Codex rule pack
 
-- Always-on rule: [`.cursor/rules/team-sdd-memory.mdc`](../../.cursor/rules/team-sdd-memory.mdc) (tracked in git). Mirror: [`team-sdd-memory.mdc`](team-sdd-memory.mdc).
-- Do **not** add `.cursor/` to `.gitignore` — OpenSpec skills/commands and the team rule live there.
+- Sprint agent pack lives under [`.codex/`](../../.codex/) (OpenSpec skills/commands, agents, team rule).
+- Always-on rule: [`.codex/rules/team-sdd-memory.mdc`](../../.codex/rules/team-sdd-memory.mdc) (tracked). Mirror: [`team-sdd-memory.mdc`](team-sdd-memory.mdc).
+- Do **not** gitignore `.codex/`.
+- Optional for Cursor IDE: create a local junction so Cursor still loads rules — `cmd /c mklink /J .cursor .codex` (keep `.cursor` local-only; it is gitignored).
 
 ## Team rule evolution
 
