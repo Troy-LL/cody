@@ -1,1 +1,3 @@
 ts	phase	decision	why	evidence	result
+2026-07-18T15:15:31+08:00	final-qa	Do not lock the completed design pack	The dark prototype ignores the documented paper outline, and ring.svg has no matching machine-readable center anchor in hotspot.json	design/QA.md final one-pass checklist	REVISE
+2026-07-18T15:17:54+08:00	remediation	Lock the completed design pack	The prototype now uses dark-theme contrast tokens and hotspot.json declares separate arrow-tip and ring-center anchors	asset validation and design/QA.md	LOCKED
