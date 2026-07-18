@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Clicky §6.8 land-on-icon prototype (throwaway)</title>
+<style>
+  :root {
+    --signal-blue: #2563EB;
+    --signal-blue-light: #93C5FD;
+    --signal-blue-deep: #1E3A8A;
+    --charcoal: #0F172A;
+    --paper: #F8FAFC;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #2b2b2b;
+    font-family: -apple-system, sans-serif;
+    color: var(--paper);
+  }
+  .note {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.85;
+    max-width: 640px;
+  }
+  .stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .explorer {
+    width: 640px;
+    height: 380px;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: 110px;
+    gap: 12px;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #cfcfcf;
+    font-size: 11px;
+  }
+  .file .box {
+    width: 48px;
+    height: 48px;
+    background: #3a3a3a;
+    border-radius: 4px;
+  }
+  .file.target .box {
+    background: #4a4a4a;
+    outline: 1px dashed #666;
+    position: relative;
+  }
+  /* the fixed icon-center target the arrow must land on, per hotspot.json */
+  #icon-target {
+    position: absolute;
+    /* positioned in JS to match the 4th file's box center */
+  }
+  #arrow {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    transform-origin: 12px 22px; /* arrow-v1 tip, from hotspot.json */
+    filter: drop-shadow(0 2px 6px rgba(37,99,235,0.5));
+  }
+  #restart {
+    position: fixed;
+    bottom: 16px;
+    left: 12px;
+    background: var(--signal-blue);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #restart:hover { background: var(--signal-blue-deep); }
+</style>
+</head>
+<body>
+  <div class="note">
+    Clicky §6.8 throwaway prototype &mdash; NOT connected to orchestration, matcher, or any pipeline.
+    Simulates: reveal() succeeds &rarr; arrow travels from a fixed corner and lands on the target
+    icon, then holds. No mouse-follow: the path is pre-authored, not tied to the live cursor.
+    Troy's §6.7 in-app breadcrumb is the real demo animation and is untouched by this file.
+  </div>
+  <div class="stage">
+    <div class="explorer" id="explorer">
+      <div class="file"><div class="box"></div>report.docx</div>
+      <div class="file"><div class="box"></div>budget.xlsx</div>
+      <div class="file"><div class="box"></div>notes.txt</div>
+      <div class="file target" id="target-file"><div class="box"></div>invoice_march.pdf</div>
+      <div class="file"><div class="box"></div>photo.png</div>
+      <div class="file"><div class="box"></div>slides.pptx</div>
+      <div class="file"><div class="box"></div>archive.zip</div>
+      <div class="file"><div class="box"></div>readme.md</div>
+      <div class="file"><div class="box"></div>draft.docx</div>
+      <div class="file"><div class="box"></div>data.csv</div>
+    </div>
+  </div>
+
+  <!-- arrow-v1 "Dart", dark-theme presentation; tip at (12,22), per hotspot.json -->
+  <svg id="arrow" viewBox="0 0 24 24">
+    <path d="M12,2 L17,13 L12,22 L7,13 Z" fill="#2563EB" stroke="#F8FAFC" stroke-width="2" stroke-linejoin="round" />
+    <path d="M9,17 L15,17 L12,22 Z" fill="#93C5FD" />
+  </svg>
+
+  <button id="restart">Replay land-on-icon</button>
+
+  <script>
+    // Throwaway eyeball harness: places the arrow off-stage, then animates its
+    // tip onto the target file's icon box center once, and holds. No loop,
+    // no live-cursor tracking, no orchestration/matcher/reveal imports.
+    function run() {
+      const explorer = document.getElementById('explorer');
+      const target = document.getElementById('target-file').querySelector('.box');
+      const arrow = document.getElementById('arrow');
+      const stageRect = document.querySelector('.stage').getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+
+      const tipTargetX = targetRect.left + targetRect.width / 2 - stageRect.left;
+      const tipTargetY = targetRect.top + targetRect.height / 2 - stageRect.top;
+
+      // arrow tip sits at local (12,22) inside a 36x36 rendered box (24 viewBox * 1.5 scale)
+      const tipLocalX = 12 * 1.5;
+      const tipLocalY = 22 * 1.5;
+
+      const startX = -60;
+      const startY = -60;
+
+      arrow.style.left = (startX - tipLocalX) + 'px';
+      arrow.style.top = (startY - tipLocalY) + 'px';
+      arrow.style.opacity = '0';
+      arrow.style.transition = 'none';
+
+      requestAnimationFrame(() => {
+        arrow.style.transition = 'left 900ms cubic-bezier(0.2, 0.8, 0.2, 1), top 900ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 150ms linear';
+        arrow.style.opacity = '1';
+        arrow.style.left = (tipTargetX - tipLocalX) + 'px';
+        arrow.style.top = (tipTargetY - tipLocalY) + 'px';
+      });
+    }
+
+    document.getElementById('restart').addEventListener('click', run);
+    window.addEventListener('load', () => setTimeout(run, 400));
+  </script>
+</body>
+</html>
