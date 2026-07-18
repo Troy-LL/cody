@@ -36,6 +36,12 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Each task: implement with Cursor Grok 4.5 subagents per the SDD workflow, then run a review pass before merging.
 - Keep OpenSpec specs and component READMEs updated when behavior or contracts change.
 
+## Git: push and conflicts
+
+- After each logical commit on your feature branch, push immediately (`git push -u origin HEAD`). Do not batch "I'll push later."
+- Never force-push `main` / `master`. Do not skip hooks unless the owner explicitly asks.
+- On merge conflicts: rebase or merge your branch, resolve **only files you own**, keep contracts additive-only, re-run your component tests, then push. If the conflict is inside a teammate's folder, stop and escalate via the contract — do not edit their code to "win."
+
 ## Team rule evolution
 
 - The always-on rule [`.cursor/rules/team-sdd-memory.mdc`](../../.cursor/rules/team-sdd-memory.mdc) may gain **Learned** bullets only after reviewed work lands.
