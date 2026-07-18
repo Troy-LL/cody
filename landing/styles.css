@@ -279,6 +279,16 @@ a:focus-visible {
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .hero .wordmark,
+  .hero .hero__headline,
+  .hero .hero__support,
+  .hero .cta {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
