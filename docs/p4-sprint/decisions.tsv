@@ -1,0 +1,6 @@
+ts	phase	decision	why	evidence	result
+2026-07-18T06:29:00Z	exit	predicate = matcher tests green + shape-only goldens green + stub-or-real MatchResult + config loader + prompt + parse guard + README on rohart-branch; live Codex smoke if config else SKIP	autonomous-run needs a checkable stop	docs/p4-sprint/overview.md	open
+2026-07-18T06:29:30Z	architect	skip parallel design; keep Option A one Responses call	already decided in plan with A/B/C table	docs/p4-sprint/overview.md	accepted
+2026-07-18T06:30:00Z	how	matcher is stub-only entry point; contracts.schemas owns shapes; fixtures.load feeds tests; no sibling imports	prior explorers + local read of matcher/match.py and contracts/	matcher/match.py	ready for Phase 1
+2026-07-18T06:34:00Z	phase-1	stub returns MatchResult from files[0]	foundational scaffold before LLM	matcher/match.py	tests green
+2026-07-18T06:40:00Z	phase-2-8	implemented goldens config prompt parse api match README	autonomous run to exit predicate offline	matcher/tests green; run_golden --shape-only	tests green; live smoke SKIP until key
