@@ -1,6 +1,6 @@
 ---
 alwaysApply: true
-description: Clicky team SDD memory — ownership, contracts, TDD, git push, conflicts
+description: Clicky team SDD memory — ownership, contracts, TDD, auto commit/push, conflicts
 ---
 
 # Team SDD memory
@@ -15,10 +15,12 @@ Before work: read root README, your component README, and `openspec/specs/<domai
 - SDD review: OpenSpec + README stay SoT; finish with a review pass.
 - Subagents: Cursor Grok 4.5 for task implementation and review.
 
-## Git (auto)
-- After each logical commit on your feature branch: `git push -u origin HEAD` (do not wait to be asked).
+## Git (auto commit + push)
+- After each logical unit of work on your feature branch (tests green for that slice): auto-commit with a concise why-focused message — do not wait to be asked.
+- Immediately after each commit: `git push -u origin HEAD` (auto-push; do not batch).
+- Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens).
 - Never force-push `main`/`master`. No `--no-verify` unless the owner explicitly asks.
-- Merge conflicts: rebase or merge your branch; resolve only files you own; keep contracts additive-only; re-run your tests; push the fix. Do not "win" by editing a teammate's folder — escalate the contract instead.
+- Merge conflicts: rebase or merge your branch; resolve only files you own; keep contracts additive-only; re-run your tests; commit the resolution; push. Do not "win" by editing a teammate's folder — escalate the contract instead.
 
 ## Evolution protocol
 Update this rule only after reviewed work lands. Add a Learned bullet only for a durable, verified, team-wide convention. Cite source+date; replace stale; no secrets/guesses; max 10 learned bullets; the edit MUST appear in the task diff.
