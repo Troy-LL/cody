@@ -4,6 +4,7 @@
 Thumbs.db
 .env
 .env.*
+matcher/local_model.json
 node_modules/
 dist/
 *.log
