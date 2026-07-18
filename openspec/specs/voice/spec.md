@@ -1,6 +1,6 @@
 ## Purpose
 
-The voice layer speaks a short templated confirmation for the resolved filename through ElevenLabs, routed by language mode, and never blocks the visual reveal when disabled or failing.
+The voice layer supports **voice-controlled** Cody sessions: listen to the user, speak AI replies aloud via local OpenVoice/MeloTTS, and never block visual reveal/cursor when soft-failing.
 
 ## Requirements
 
@@ -12,18 +12,26 @@ The voice layer speaks a short templated confirmation for the resolved filename 
 - **WHEN** `speak` runs with voice enabled
 - **THEN** audio MUST play a short English template including the filename and the function MUST return `true`
 
-### Requirement: Language routing
-Voice SHALL resolve `language_mode` through `VoiceConfig.routing` (`spec.md` §8.2). When mode is `auto`, it MUST mirror `QueryIntent.language_mix` supplied by orchestration.
+### Requirement: Free-form AI reply
+`speak_text` SHALL speak arbitrary confirmation/acknowledgment text for voice-controlled turns.
 
-#### Scenario: Tagalog template
-- **GIVEN** `language_mode` `tl` and a configured Tagalog voice id
-- **WHEN** `speak` runs
-- **THEN** the Tagalog template MUST be used with the routed `voice_id`
+#### Scenario: Not found reply
+- **GIVEN** a transcript that resolves to no file
+- **WHEN** the voice session handles it
+- **THEN** Cody MUST speak a short not-found reply via `speak_text`
+
+### Requirement: Listen (STT)
+`listen` SHALL return a transcript string when SpeechRecognition + microphone are available, and MUST raise a documented unavailable error (not crash the OS) when the STT stack is missing.
+
+#### Scenario: Missing SpeechRecognition
+- **GIVEN** SpeechRecognition is not installed
+- **WHEN** `listen` is called
+- **THEN** it MUST raise `ListenUnavailable` (session soft-handles)
 
 ### Requirement: Non-blocking fallback
-If `enabled` is false or the TTS call fails, voice MUST return `false` (or no-op success policy documented by owner) without preventing visual reveal success.
+If voice is disabled or TTS fails, voice MUST soft-fail without preventing reveal/cursor success.
 
-#### Scenario: Missing API key
-- **GIVEN** voice config with no usable API key
-- **WHEN** orchestration still reveals a file
-- **THEN** speak MUST fail soft and the demo MUST continue visually
+#### Scenario: OpenVoice unavailable
+- **GIVEN** MeloTTS/OpenVoice is not installed
+- **WHEN** `speak` / `speak_text` runs while enabled
+- **THEN** the function MUST return `false` and MUST NOT raise to the caller

@@ -10,6 +10,7 @@ from voice.config import (
     CONFIG_PATH,
     ConfigLoadError,
     ConfigMissing,
+    VoiceConfig,
     is_usable_reference,
     is_usable_speaker,
     load_voice_config,
@@ -36,17 +37,14 @@ def _play_audio(path: str) -> None:
     os.startfile(path)  # type: ignore[attr-defined]
 
 
-def speak(filename: str, language_mode: str) -> bool:
-    """Speak a templated confirmation for *filename* in *language_mode*."""
-    if not str(filename).strip():
-        logger.warning("speak: empty filename")
-        return False
+def _load_enabled_config() -> VoiceConfig | None | bool:
+    """Return config, True for planned no-op, False for hard soft-fail, None unused.
 
-    mode = str(language_mode).strip().lower()
-    if mode not in TEMPLATES:
-        logger.warning("speak: unsupported language_mode %r", language_mode)
-        return False
-
+    Actually returns:
+      - VoiceConfig when enabled and ready to speak
+      - True when planned no-op (disabled / missing file)
+      - False when config error / should soft-fail before synth
+    """
     try:
         loaded = load_voice_config(CONFIG_PATH, environ=dict(os.environ))
     except ConfigLoadError as exc:
@@ -65,27 +63,33 @@ def speak(filename: str, language_mode: str) -> bool:
         logger.warning("speak: unsupported provider %r (expected openvoice)", loaded["provider"])
         return False
 
-    route = route_for_mode(loaded, mode)
+    return loaded
+
+
+def _synthesize_and_play(text: str, language_mode: str, config: VoiceConfig) -> bool:
+    mode = language_mode.lower()
+    route = route_for_mode(config, mode if mode in TEMPLATES else "en")
     if route is None or not is_usable_speaker(route.get("speaker")):
-        logger.warning("speak: missing or placeholder speaker for mode %s", mode)
+        # Fall back to en route for free-form speak_text.
+        route = route_for_mode(config, "en")
+    if route is None or not is_usable_speaker(route.get("speaker")):
+        logger.warning("speak: missing or placeholder speaker")
         return False
 
-    if loaded["tone_convert"] and not is_usable_reference(route.get("reference_wav")):
-        logger.warning(
-            "speak: tone_convert requires an existing reference_wav for mode %s", mode
-        )
+    synth_mode = mode if mode in TEMPLATES else "en"
+    if config["tone_convert"] and not is_usable_reference(route.get("reference_wav")):
+        logger.warning("speak: tone_convert requires an existing reference_wav")
         return False
 
-    text = render_template(str(filename).strip(), mode)
     try:
         wav_path = synthesize_to_wav(
             text=text,
             speaker=route["speaker"],
-            language_mode=mode,
-            checkpoints_dir=loaded["checkpoints_dir"],
-            device=loaded["device"],
+            language_mode=synth_mode,
+            checkpoints_dir=config["checkpoints_dir"],
+            device=config["device"],
             reference_wav=route.get("reference_wav") or None,
-            tone_convert=loaded["tone_convert"],
+            tone_convert=config["tone_convert"],
         )
         if not Path(wav_path).is_file():
             logger.warning("speak: synthesizer produced no file")
@@ -100,5 +104,41 @@ def speak(filename: str, language_mode: str) -> bool:
     except Exception as exc:  # noqa: BLE001 — soft-fail contract
         logger.warning("speak: unexpected failure: %s", exc)
         return False
-
     return True
+
+
+def speak_text(text: str, language_mode: str = "en") -> bool:
+    """Speak arbitrary AI reply text (voice-controlled acknowledgments)."""
+    if not str(text).strip():
+        logger.warning("speak_text: empty text")
+        return False
+
+    loaded = _load_enabled_config()
+    if loaded is True:
+        return True
+    if loaded is False or not isinstance(loaded, dict):
+        return False
+
+    mode = str(language_mode).strip().lower() or "en"
+    return _synthesize_and_play(str(text).strip(), mode, loaded)
+
+
+def speak(filename: str, language_mode: str) -> bool:
+    """Speak a templated confirmation for *filename* in *language_mode*."""
+    if not str(filename).strip():
+        logger.warning("speak: empty filename")
+        return False
+
+    mode = str(language_mode).strip().lower()
+    if mode not in TEMPLATES:
+        logger.warning("speak: unsupported language_mode %r", language_mode)
+        return False
+
+    loaded = _load_enabled_config()
+    if loaded is True:
+        return True
+    if loaded is False or not isinstance(loaded, dict):
+        return False
+
+    text = render_template(str(filename).strip(), mode)
+    return _synthesize_and_play(text, mode, loaded)

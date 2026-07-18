@@ -2,13 +2,16 @@
 
 | Field | Value |
 |-------|-------|
-| **Owner** | Person 6 (also owns `voice/`) |
+| **Owner** | Person 6 (also owns `voice/`, `overlay/`) |
 | **Purpose** | OS-native folder open + file select/highlight on Windows. |
 | **Owns** | `reveal/` package and `reveal` entry point. |
-| **Does not own** | Matching, in-app baseline animation (§6.7 is orchestration), stretch overlay (§6.8). |
+| **Does not own** | Matcher; AI cursor geometry lives in `overlay/`. |
 | **Frozen I/O** | `reveal(path: str) -> bool` per `spec.md` §6.5. |
-| **Stub requirement** | Stub raises `NotImplementedError` until fixture-shaped return lands (Task 2 / 0:30). |
-| **Test command** | `python -m pytest reveal/tests -q` (owner adds tests). |
-| **Branch** | `feature/reveal` |
-| **Done condition** | Hardcoded valid path opens Explorer and visibly selects the file on Windows. |
-| **Integration handoff** | Orchestration imports `reveal.reveal.reveal`. Keep `voice/` changes on `feature/voice`. |
+| **Test command** | `python -m pytest reveal/tests -q` |
+| **Branch** | `feature/voice` (Person 6 redirected scope) |
+
+## Behavior
+
+- `Path.expanduser().resolve()` then `is_file()`
+- Windows: `explorer /select,{abs}` via `subprocess` (`shell=False`); ignore exit code
+- Non-Windows / missing file → `false`

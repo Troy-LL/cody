@@ -1,20 +1,17 @@
-# Person 6 manual demo-box checklist
+# Person 6 manual checklist — voice-controlled + AI cursor
 
-Run on the Windows demo machine. Unit tests do not replace these.
+## Voice control + AI reply
 
-## Reveal (`feature/reveal` — already merged)
+- [ ] Install SpeechRecognition + PyAudio; OpenVoice + MeloTTS (see `voice/README.md`)
+- [ ] `Copy-Item voice\config.example.json voice\config.local.json`
+- [ ] Put a demo file in a folder (e.g. Desktop `receipt_lazada.pdf`)
+- [ ] `python -m voice --root $env:USERPROFILE\Desktop --lang en --rounds 1`
+- [ ] Say “find receipt_lazada.pdf” — Cody speaks back, Explorer selects, cursor points
+- [ ] `enabled: false` → no audio, reveal/cursor still attempted if you call them directly
 
-- [ ] Existing file path opens Explorer with the file selected
-- [ ] Path containing spaces still selects correctly
-- [ ] Missing / deleted path returns `false` and does not crash the shell
-- [ ] `python -m pytest reveal/tests -q` green
+## AI cursor / reveal
 
-## Voice (`feature/voice` — OpenVoice)
-
-- [ ] Install OpenVoice + MeloTTS per `voice/README.md`
-- [ ] Copy `config.example.json` → `config.local.json` (`tone_convert: false` for first smoke)
-- [ ] `python voice/scripts/smoke_tl.py` — Tagalog text via EN Melo speaker (ear-check)
-- [ ] `speak("receipt_lazada.pdf", "en")` plays English template
-- [ ] `enabled: false` → returns `true`, no audio
-- [ ] Optional: download checkpoints + set `tone_convert: true` + reference wav
-- [ ] `python -m pytest voice/tests -q` green
+- [ ] Explorer opens with file selected
+- [ ] Cursor animates (with or without `uiautomation`)
+- [ ] Optional: `pip install uiautomation` for real icon bounds
+- [ ] `python -m pytest voice/tests overlay/tests reveal/tests -q` green

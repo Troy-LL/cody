@@ -1,57 +1,33 @@
-# Voice Layer (Cody speaks)
+# Voice Layer — voice-controlled Cody
 
 | Field | Value |
 |-------|-------|
-| **Owner** | Person 6 (also owns `reveal/`) |
-| **Purpose** | Speak a short templated confirmation via local [OpenVoice](https://github.com/myshell-ai/OpenVoice) (MeloTTS + optional tone clone). |
-| **Owns** | `voice/` package, `speak` entry point, and `VoiceConfig` usage. |
-| **Does not own** | Open-ended translation of Matcher `reasoning`, speech-to-text input, reveal OS select. |
-| **Frozen I/O** | `speak(filename: str, language_mode: str) -> bool` / `SpeechRequest` per `spec.md` §6.6. |
+| **Owner** | Person 6 (also owns `reveal/`, `overlay/`) |
+| **Purpose** | Pure voice control + AI spoken replies (OpenVoice) for the redirected Clicky/Cody scope. |
+| **Owns** | `listen`, `speak` / `speak_text`, `session` voice loop |
+| **Frozen I/O** | `speak(filename, language_mode) -> bool`; additive: `listen()`, `speak_text()`, `run_voice_session()` |
 | **Test command** | `python -m pytest voice/tests -q` |
 | **Branch** | `feature/voice` |
-| **Done condition** | Fixture filename speaks EN and TL templates; disabled / engine failure falls back cleanly. |
-| **Integration handoff** | Orchestration imports `voice.speak.speak`. |
-| **Seat plan** | [`tasks/plan.md`](tasks/plan.md) / [`tasks/todo.md`](tasks/todo.md) |
-| **Glossary** | [`CONTEXT.md`](CONTEXT.md) |
 
-## Why OpenVoice (not ElevenLabs)
+## New scope features
 
-Local, no API key. Engine stack follows the official OpenVoice V2 path: **MeloTTS** synthesizes speech; **OpenVoice** optionally applies tone-color cloning from a reference wav ([OpenVoice repo](https://github.com/myshell-ai/OpenVoice)).
+1. **Purely voice controlled** — `listen()` (SpeechRecognition) → session resolves a file under `--root`
+2. **AI voice responds** — `speak_text(...)` acknowledgments + templated `speak(filename, ...)` via local [OpenVoice](https://github.com/myshell-ai/OpenVoice)/MeloTTS
+3. **AI cursor on the OS** — session calls `overlay.start_follow` / `point_at` after `reveal`
 
-**Tagalog note:** OpenVoice/MeloTTS natively cover EN/ES/FR/ZH/JP/KR — not Tagalog. TL/taglish templates still speak the Tagalog *text* through the English Melo speaker (ear-check quality may vary).
-
-## Config
-
-1. Copy [`config.example.json`](config.example.json) → `config.local.json` (gitignored).
-2. Default example sets `"tone_convert": false` so MeloTTS alone works after install (fastest demo path).
-3. For full OpenVoice cloning, set `"tone_convert": true`, download checkpoints, and point `reference_wav` at a short clean clip.
-
-JSON `language_mode` is kept for shape compatibility but **ignored by `speak`**. Call with `en` / `tl` / `taglish` only.
-
-Missing `config.local.json` or `enabled: false` → `true` (planned no-op). Engine/install/checkpoint failures → `false`. Soft-fails log at WARNING.
-
-## OpenVoice setup (demo machine)
+## Run voice session
 
 ```powershell
+pip install SpeechRecognition pyaudio
 pip install git+https://github.com/myshell-ai/OpenVoice.git
 pip install git+https://github.com/myshell-ai/MeloTTS.git
 python -m unidic download
+Copy-Item voice\config.example.json voice\config.local.json
+python -m voice --root $env:USERPROFILE\Desktop --lang en --rounds 1
 ```
 
-Optional tone convert (V2 checkpoints):
+Say e.g. *"find receipt_lazada.pdf"* (file must exist in that folder).
 
-1. Download [checkpoints_v2_0417.zip](https://myshell-public-repo-host.s3.amazonaws.com/openvoice/checkpoints_v2_0417.zip)
-2. Extract to `voice/checkpoints_v2/`
-3. Put a reference wav at `voice/refs/speaker.wav`
-4. Set `"tone_convert": true` in `config.local.json`
+## Config
 
-## Templates
-
-- EN: `Found it — {filename}.`
-- TL / taglish: `Nakita ko na — {filename}.`
-
-## Smoke
-
-```
-python voice/scripts/smoke_tl.py
-```
+See `config.example.json` (`provider: openvoice`, `tone_convert: false` for fastest smoke).

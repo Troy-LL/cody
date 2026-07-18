@@ -6,3 +6,4 @@
 - [x] Full `speak` implementation + unit tests
 - [x] Manual checklist doc + open PRs for `feature/reveal` and `feature/voice`
 - [x] Switch TTS engine to local OpenVoice (MeloTTS + optional tone convert)
+- [x] Voice-controlled session + AI speak_text + overlay AI cursor

@@ -28,6 +28,7 @@ include = [
     "matcher*",
     "reveal*",
     "voice*",
+    "overlay*",
 ]
 
 [tool.pytest.ini_options]
