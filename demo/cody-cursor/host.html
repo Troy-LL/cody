@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cody — fullscreen cursor demo (iframe)</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0a1628;
+      color: #e8f0fe;
+    }
+    /* “Computer vision” layer: iframe paints over the whole viewport */
+    #cody-frame {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      border: 0;
+      z-index: 999999;
+      background: transparent;
+    }
+    .panel {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 48px 24px 120px;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin: 0 0 12px;
+      color: #fff;
+    }
+    p { line-height: 1.5; opacity: 0.9; }
+    .hint {
+      margin-top: 24px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(27, 79, 216, 0.25);
+      border: 1px solid rgba(27, 79, 216, 0.5);
+      font-size: 14px;
+    }
+    code { font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Cody</h1>
+    <p>
+      Fullscreen iframe overlay demo: Cody’s cursor follows yours, then points at a source.
+      This is the Clicky-style “vision” layer — a transparent layer over the whole screen, not a folder path in chat.
+    </p>
+    <div class="hint">
+      Move the mouse. Press <strong>1</strong> / <strong>2</strong> (or use the HUD) to point.
+      Open <code>overlay.html</code> alone for the same demo without this host chrome.
+    </div>
+  </div>
+
+  <!-- Spans the entire screen; receives mouse from this page via postMessage -->
+  <iframe
+    id="cody-frame"
+    title="Cody cursor overlay"
+    src="overlay.html?embed=0"
+  ></iframe>
+
+  <script>
+    const frame = document.getElementById("cody-frame");
+    function sendMouse(e) {
+      if (!frame.contentWindow) return;
+      frame.contentWindow.postMessage(
+        { type: "cody-mouse", x: e.clientX, y: e.clientY },
+        "*"
+      );
+    }
+    window.addEventListener("mousemove", sendMouse, { passive: true });
+    frame.addEventListener("load", () => {
+      // Keep feeding mouse even when pointer is over iframe chrome
+      frame.contentWindow?.postMessage({ type: "cody-follow" }, "*");
+    });
+  </script>
+</body>
+</html>
