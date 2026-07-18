@@ -9,7 +9,7 @@ if (-not (Test-Path .venv\Scripts\python.exe)) {
 .\.venv\Scripts\pip install -U pip
 .\.venv\Scripts\pip install -e ".[overlay]"
 
-.\.venv\Scripts\pip install -q pyinstaller
+.\.venv\Scripts\pip install pyinstaller
 .\.venv\Scripts\pyinstaller `
   --noconfirm `
   --clean `
@@ -18,11 +18,13 @@ if (-not (Test-Path .venv\Scripts\python.exe)) {
   --name Cody `
   --paths $Root `
   --hidden-import overlay `
-  --hidden-import overlay.tk_app `
+  --hidden-import overlay.tk_lens `
   --hidden-import overlay.find_target `
-  --hidden-import overlay.hotkey `
   --hidden-import reveal `
   --hidden-import reveal.reveal `
   overlay\__main__.py
 
 Write-Host "Built: $Root\dist\Cody.exe"
+if (Test-Path "$Root\dist\Cody.exe") {
+  Start-Process "$Root\dist\Cody.exe"
+}
