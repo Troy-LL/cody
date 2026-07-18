@@ -2,7 +2,7 @@
 
 **Product context:** [`spec.md`](spec.md) is the product source of truth (contracts, fixtures, demo scope).
 
-**Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md).
+**Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md). Codex sprint agent pack: [`.codex/`](.codex/).
 
 **Git (enforced):** never push to `main`/`master` — feature branches + PR only (PM merge gate). Use **granular commits** (one concern each); auto-commit and push each slice on your branch.
 
