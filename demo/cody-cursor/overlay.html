@@ -530,7 +530,12 @@
         };
       }
 
+      let micToggleLockUntil = 0;
+
       function toggleMic() {
+        const now = Date.now();
+        if (now < micToggleLockUntil) return;
+        micToggleLockUntil = now + 450;
         if (!recognition) {
           status.textContent = "Speech recognition unavailable";
           return;
@@ -624,13 +629,23 @@
         pointAt("shopee");
       };
       document.getElementById("btn-follow").onclick = resumeFollow;
-      btnMic.onclick = toggleMic;
+      btnMic.onclick = function (e) {
+        e.preventDefault();
+        toggleMic();
+      };
 
+      // keyup + ignore repeats so holding V does not spam start/stop
       window.addEventListener("keydown", function (e) {
+        if (e.repeat) return;
         if (e.key === "1") pointAt("lazada");
         if (e.key === "2") pointAt("shopee");
-        if (e.key === "v" || e.key === "V") toggleMic();
         if (e.key === "Escape") resumeFollow();
+      });
+      window.addEventListener("keyup", function (e) {
+        if (e.key === "v" || e.key === "V") {
+          e.preventDefault();
+          toggleMic();
+        }
       });
 
       try {

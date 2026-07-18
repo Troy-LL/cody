@@ -1,43 +1,54 @@
-# Cody cursor iframe demo
+# Cody cursor demo
 
-Fullscreen **iframe** overlay with a **small companion cursor** (lower-right of the real OS mouse). Your system cursor stays visible; Cody springs toward that slot on its own, then can leave to point at a source.
+Clicky-style helper cursor in a fullscreen browser overlay.
 
-## Run locally
+- Your normal mouse stays.
+- A **small Cody cursor** rides in the **lower-right** of the mouse (not glued — soft spring).
+- On command, Cody **leaves** that slot and points at a file.
+- A **caption** floats next to Cody with what it thinks.
+- **Voice** (Chrome/Edge): say “where’s Lazada” — mic bar shows volume while listening.
 
-From the repo root (needs a tiny static server so SVG paths resolve):
+## Quick start
 
 ```bash
+# from repo root
 python -m http.server 8765
 ```
 
-Open:
+| URL | What |
+|-----|------|
+| http://localhost:8765/demo/cody-cursor/overlay.html | Full demo (mock desktop + Cody) |
+| http://localhost:8765/demo/cody-cursor/host.html | Same overlay in a fullscreen iframe |
 
-- http://localhost:8765/demo/cody-cursor/host.html — host page + fullscreen iframe  
-- http://localhost:8765/demo/cody-cursor/overlay.html — overlay alone (mock desktop)
+Allow the mic when the browser asks (localhost is fine).
 
 ## Controls
 
 | Input | Action |
 |-------|--------|
-| Mouse move | Real cursor stays; small Cody sits lower-right (independent spring) |
-| 🎤 Listen / `V` | Voice: say “where’s Lazada” (Chrome/Edge); bar meter shows mic volume while listening |
-| `1` or HUD | Point at `receipt_lazada.pdf` + thought caption |
-| `2` or HUD | Point at `invoice_shopee.pdf` |
-| `Esc` | Resume follow |
+| Move mouse | Cody companion stays lower-right |
+| **Listen** or `V` (release once) | Start/stop voice listen + volume meter |
+| Say “where’s Lazada” / “Shopee” / “notes” | Point + caption |
+| `1` | Point at `receipt_lazada.pdf` |
+| `2` | Point at `invoice_shopee.pdf` |
+| **Follow again** / `Esc` | Cody returns to companion mode |
 
-Caption floats beside the small Cody cursor with what Cody thinks.
+## Files
 
-## Embed API (`postMessage`)
+| Path | Role |
+|------|------|
+| `overlay.html` | Cursor, caption, voice, mock files |
+| `host.html` | Fullscreen iframe wrapper |
+| `../../assets/cody-cursor/*.svg` | Cody pointer art |
 
-Host → overlay:
+## Embed notes
 
-- `{ type: "cody-mouse", x, y }`
-- `{ type: "cody-point", id: "lazada", thought?: string }` or `{ type: "cody-point", x, y, thought? }`
-- `{ type: "cody-heard", transcript: "where's lazada" }`
-- `{ type: "cody-follow" }`
+Default: mock files stay visible so pointing works.
 
-Use `?nomock=1` only when embedding over a real page (hides mock desktop). Default keeps mock files so pointing works.
+- `?nomock=1` — hide mock desktop (only when overlaying a real page).
+- Host → overlay `postMessage`: `cody-mouse`, `cody-point`, `cody-heard`, `cody-follow`.
+- Overlay → host: `cody-ready`, `cody-status`.
 
-Overlay → host: `{ type: "cody-ready" }`, `{ type: "cody-status", mode }`
+## SPEED MODE
 
-Assets: [`../../assets/cody-cursor/`](../../assets/cody-cursor/).
+Work lands straight on `main` (no feature-branch PR gate for this sprint demo). Push from `main` after each slice.
