@@ -1,0 +1,29 @@
+---
+alwaysApply: true
+description: Cody team SDD ? ownership, granular commits, PR-only main
+---
+
+# Team SDD memory
+
+Before work: read root README, your component README, and `openspec/specs/<domain>/spec.md`. Product shapes live in `spec.md`.
+
+## Hard rules
+- No cross-edit: only your folder/branch; talk contracts, never neighbors' files.
+- Contract discipline: additive-only mid-sprint; consumers ignore unknown fields.
+- Only `orchestration/` imports other components.
+- TDD: write or update failing tests before implementation for behavior changes.
+- SDD review: OpenSpec + README stay SoT; finish with a review pass.
+- Subagents: Cursor Grok 4.5 for task implementation and review.
+
+## Git (feature branches only)
+- Never push, force-push, or commit directly to `main`/`master`. Work only on your feature branch; main is PR-gated (PM merge loop).
+- Granular commits: one concern per commit (e.g. stub, then tests, then impl, then docs). No mega-commits dumping a whole component.
+- After each logical slice (tests green): auto-commit with a concise why-focused message, then `git push -u origin HEAD`.
+- Stage only owned/relevant files; never commit secrets (`.env`, keys, tokens). No `--no-verify` unless owner asks.
+- Merge conflicts: rebase onto latest `main`; resolve only owned files; keep contracts additive-only; re-test; commit; push. Never edit a teammate's folder to "win."
+
+## Evolution protocol
+Update this rule only after reviewed work lands. Add a Learned bullet only for a durable, verified, team-wide convention. Cite source+date; replace stale; no secrets/guesses; max 10 learned bullets; the edit MUST appear in the task diff.
+
+## Learned
+- Breadcrumb segments use QTimer delay; OS reveal fires after the last segment (?6.7) ? `orchestration/controller.py` 2026-07-18

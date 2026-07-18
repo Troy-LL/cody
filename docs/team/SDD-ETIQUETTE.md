@@ -1,4 +1,4 @@
-# SDD etiquette (Clicky / Cody sprint)
+# SDD etiquette (Cody sprint)
 
 Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`](../../spec.md). Process requirements live in [`openspec/specs/team-workflow/spec.md`](../../openspec/specs/team-workflow/spec.md).
 

@@ -1,4 +1,4 @@
-# Clicky — MVP Spec (SOT)
+# Cody — MVP Spec (SOT)
 
 **Status:** Draft v0.3 — scoped for a **3-hour build sprint**
 **Owner:** Troy (architecture) + 5 contributors (Voice Layer ownership TBD — Section 9)
@@ -8,13 +8,13 @@
 
 ## 1. One-liner
 
-Clicky is an AI that shows you where something is instead of telling you how to find it. MVP proves this with one scenario: describe a file in natural, messy (Taglish-friendly) language, and Clicky finds it on a real local machine and physically points to it — no manual searching, no folder-by-folder instructions.
+Cody is an AI that shows you where something is instead of telling you how to find it. MVP proves this with one scenario: describe a file in natural, messy (Taglish-friendly) language, and Cody finds it on a real local machine and physically points to it — no manual searching, no folder-by-folder instructions.
 
-**Naming:** Clicky is the product. **Cody** is the name of the AI reasoning engine underneath it — the Matcher (Section 6.4), powered by the Codex API (Section 8.1). Cody's `reasoning` string is what actually gets surfaced to the user as "why it picked this file," so it's worth treating as a small in-product persona, not just a backend function.
+**Naming:** **Cody** is the product and the in-product AI persona. The Matcher / Ranker (Section 6.4) is Cody's reasoning engine, powered by the Codex API (Section 8.1). Cody's `reasoning` string is what actually gets surfaced to the user as "why it picked this file."
 
 ## 2. Core insight (protect this)
 
-Most AI assistants operate in "instruction mode" — they explain steps. Clicky's bet is that **pointing beats explaining**. The demo lives or dies on whether the final "reveal" moment feels like the AI actually walked over and put its finger on the file, not just returned a text path.
+Most AI assistants operate in "instruction mode" — they explain steps. Cody's bet is that **pointing beats explaining**. The demo lives or dies on whether the final "reveal" moment feels like the AI actually walked over and put its finger on the file, not just returned a text path.
 
 Everything in this spec is in service of making that one moment convincing.
 
@@ -26,7 +26,7 @@ Everything in this spec is in service of making that one moment convincing.
 - Matching against file metadata + extracted text content (PDF, docx, txt) for a demo-scale folder (dozens–low hundreds of files)
 - Matching performed via LLM reasoning over an assembled context (indexer output + extracted snippets), not a full vector search / embedding pipeline
 - OS-native "reveal": open the containing folder and select/highlight the resolved file
-- Baseline pointing animation: Clicky's own UI visibly narrows in on the file (breadcrumb/tree lighting up path segments) timed to land as the real OS-native select fires — Section 6.7
+- Baseline pointing animation: Cody's own UI visibly narrows in on the file (breadcrumb/tree lighting up path segments) timed to land as the real OS-native select fires — Section 6.7
 - Cody narrates the result aloud, not just visually — a short spoken confirmation, with a language knob (English / Tagalog / auto-match the person's own mix) so it isn't only pointing, it's also telling you
 - Single happy-path flow: query in → shortlist reasoned over → best match revealed (visually + aloud)
 
@@ -173,7 +173,7 @@ Takes only a resolved path. Output is a side effect (folder opens, file selected
 ```
 
 - Built inside Orchestration (component 6) — not a separate owner. `segments` is just the resolved path split relative to the scanned root folder
-- Clicky's own UI animates each segment lighting up in sequence, timed to land right as the real OS-native select (Section 6.5) fires
+- Cody's own UI animates each segment lighting up in sequence, timed to land right as the real OS-native select (Section 6.5) fires
 - This is the **guaranteed baseline**: it never touches the real explorer window, so it can't break due to OS accessibility quirks — this is what Section 4's success criterion 6 depends on, not the stretch overlay below
 
 ### 6.8 Pointing Overlay input (stretch, Option A) — `OverlayRequest`
@@ -302,7 +302,7 @@ Each owner should leave kickoff knowing exactly this — no more, no less:
 - No dependencies to start — build against hardcoded paths
 
 **Orchestration / UI Owner**
-- Build: the glue — input box, calls 1–3 in parallel, then 4, then 5 and 7; handles loading/result states; also builds the baseline reveal animation (Section 6.7) — Clicky's own in-app breadcrumb visibly narrowing in on the file
+- Build: the glue — input box, calls 1–3 in parallel, then 4, then 5 and 7; handles loading/result states; also builds the baseline reveal animation (Section 6.7) — Cody's own in-app breadcrumb visibly narrowing in on the file
 - Done when: the full pipeline runs end-to-end on the real demo folder, visually (with the baseline animation) and aloud
 - Depends on: everyone else's contracts — can build the shell against mocked responses before real components exist
 
@@ -368,7 +368,7 @@ The component split in Section 5 only prevents conflicts if it's mirrored in the
 ### 11.1 Proposed layout
 
 ```
-clicky/
+cody/
 ├── SPEC.md
 ├── contracts/
 │   └── schemas.md        # Section 6 — locked after kickoff sign-off

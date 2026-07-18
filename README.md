@@ -1,4 +1,4 @@
-# Clicky / Cody — team map
+# Cody — team map
 
 **Product context:** [`spec.md`](spec.md) is the product source of truth (contracts, fixtures, demo scope).
 
