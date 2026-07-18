@@ -3,7 +3,7 @@
 This folder is the **only** Cody-repo landing zone for the cloud party-game run.
 
 - Built entirely under `/tmp/party-game-cloud` by a Fable 5 (`claude-fable-5-thinking-xhigh`) poteto-mode orchestrator.
-- Subagent contracts (create-subagent): `.cursor/agents/{planner,developer,qa}.md`
+- Subagent contracts (create-subagent): `create-subagent/{planner,developer,qa}.md (also mirrored under .cursor/agents locally)`
 - Loop artifacts: `orchestration/{planner,developer,qa}/{plan,progress,suggestions}.md`
 - Exit predicate: `orchestration/qa/suggestions.md` == `NONE` (independent QA re-verified).
 - Product: Confetti Club (`app/`), Next.js + React party game.
