@@ -2,40 +2,39 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 
-def _iso_utc(timestamp: float) -> str:
-    """Format a POSIX timestamp as ISO-8601 UTC ending in Z."""
+def _iso_utc(epoch_seconds: float) -> str:
     return (
-        datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        datetime.fromtimestamp(epoch_seconds, tz=timezone.utc)
         .replace(microsecond=0)
         .isoformat()
         .replace("+00:00", "Z")
     )
 
 
-def _created_at(stat_result: Any) -> str:
-    """Prefer birth time when available (Windows); fall back to ctime."""
+def _created_epoch(stat_result: os.stat_result) -> float:
     birth = getattr(stat_result, "st_birthtime", None)
     if birth is not None:
-        return _iso_utc(float(birth))
-    return _iso_utc(stat_result.st_ctime)
+        return float(birth)
+    return float(stat_result.st_ctime)
 
 
 def index_folder(path: str) -> list[dict]:
-    """Walk *path* (top-level) and return FileRecord dicts.
+    """Walk *path* (top-level only) and return FileRecord dicts.
 
-    Enumerates only immediate file children (non-recursive). Does not read
-    file contents or modify the scanned folder.
+    Emits one record per immediate child file. Subdirectories are skipped.
+    Does not read file contents or modify the folder.
     """
-    root = Path(path)
+    root = Path(path).expanduser()
     if not root.exists():
         raise FileNotFoundError(f"Folder not found: {path}")
     if not root.is_dir():
         raise NotADirectoryError(f"Not a directory: {path}")
+    root = root.resolve()
 
     records: list[dict] = []
     for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
@@ -44,11 +43,11 @@ def index_folder(path: str) -> list[dict]:
         stat_result = child.stat()
         records.append(
             {
-                "path": str(child.resolve()),
+                "path": child.resolve().as_posix(),
                 "filename": child.name,
                 "extension": child.suffix,
                 "size_bytes": stat_result.st_size,
-                "created_at": _created_at(stat_result),
+                "created_at": _iso_utc(_created_epoch(stat_result)),
                 "modified_at": _iso_utc(stat_result.st_mtime),
             }
         )
