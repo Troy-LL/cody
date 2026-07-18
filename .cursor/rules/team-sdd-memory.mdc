@@ -1,6 +1,6 @@
 ---
 alwaysApply: true
-description: Clicky team SDD — ownership, granular commits, PR-only main
+description: Cody team SDD - ownership, granular commits, PR-only main
 ---
 
 # Team SDD memory
@@ -26,4 +26,4 @@ Before work: read root README, your component README, and `openspec/specs/<domai
 Update this rule only after reviewed work lands. Add a Learned bullet only for a durable, verified, team-wide convention. Cite source+date; replace stale; no secrets/guesses; max 10 learned bullets; the edit MUST appear in the task diff.
 
 ## Learned
-- Breadcrumb segments use QTimer delay; OS reveal fires after the last segment (§6.7) — `orchestration/controller.py` 2026-07-18
+- Breadcrumb segments use QTimer delay; OS reveal fires after the last segment (spec 6.7) - `orchestration/controller.py` 2026-07-18
