@@ -18,7 +18,8 @@
       overflow: hidden;
       background: transparent;
       font-family: "Segoe UI", system-ui, sans-serif;
-      cursor: none;
+      /* Keep the real OS cursor; Cody is a separate companion sprite */
+      cursor: default;
     }
     /* Click-through except HUD controls */
     .stage {
@@ -28,21 +29,22 @@
     }
     #cody-cursor {
       position: fixed;
-      width: 48px;
-      height: 48px;
+      width: 28px;
+      height: 28px;
       left: 0;
       top: 0;
-      transform: translate(-6px, -4px); /* hotspot */
+      /* Sprite top-left sits at companion slot (lower-right of mouse) */
+      transform: none;
       pointer-events: none;
       z-index: 2147483646;
       will-change: left, top, opacity;
-      filter: drop-shadow(0 2px 4px rgba(10, 22, 40, 0.35));
+      filter: drop-shadow(0 1px 3px rgba(10, 22, 40, 0.4));
       transition: opacity 120ms ease;
     }
     #cody-cursor img {
       display: block;
-      width: 48px;
-      height: 48px;
+      width: 28px;
+      height: 28px;
     }
     .hud {
       position: fixed;
@@ -165,7 +167,7 @@
   </div>
 
   <div class="hud" id="hud">
-    <span id="status">Cody is following you</span>
+    <span id="status">Cody companion (lower-right of your cursor)</span>
     <button type="button" id="btn-point" title="Point at Lazada receipt">Point → Lazada</button>
     <button type="button" id="btn-shopee" class="secondary">Point → Shopee</button>
     <button type="button" id="btn-follow" class="secondary">Follow again</button>
@@ -176,7 +178,12 @@
     (function () {
       const ASSET_DEFAULT = "../../assets/cody-cursor/cursor-default.svg";
       const ASSET_POINT = "../../assets/cody-cursor/cursor-point.svg";
-      const HOTSPOT = { x: 6, y: 4 };
+      /** Companion sits lower-right of the real mouse tip (px). */
+      const SLOT = { x: 18, y: 22 };
+      const SIZE = 28;
+      /** Soft spring toward slot — not locked to the OS cursor. */
+      const SPRING = 0.12;
+      const DAMP = 0.78;
 
       const params = new URLSearchParams(location.search);
       const embedded = params.get("embed") === "1" || window.parent !== window;
@@ -189,10 +196,13 @@
       const mock = document.getElementById("mock-desktop");
 
       img.src = ASSET_DEFAULT;
+      img.width = SIZE;
+      img.height = SIZE;
 
       let mode = "follow"; // follow | animating | pointed
       let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
-      let pos = { x: mouse.x, y: mouse.y };
+      let pos = { x: mouse.x + SLOT.x, y: mouse.y + SLOT.y };
+      let vel = { x: 0, y: 0 };
       let target = null;
       let animStart = 0;
       let animFrom = { x: 0, y: 0 };
@@ -208,6 +218,10 @@
         pos.y = y;
         el.style.left = x + "px";
         el.style.top = y + "px";
+      }
+
+      function slotPos() {
+        return { x: mouse.x + SLOT.x, y: mouse.y + SLOT.y };
       }
 
       function easeInOutCubic(t) {
@@ -227,8 +241,6 @@
 
       function pointAt(id) {
         if (embedded && !document.querySelector('.file[data-id="' + id + '"]')) {
-          // In embed mode without mock icons: point to a relative screen spot
-          // Host can postMessage {type:'cody-point', x, y} instead.
           status.textContent = "No mock target in embed — send cody-point from host";
           return;
         }
@@ -237,11 +249,14 @@
         mode = "animating";
         setSprite(true);
         clearHighlight();
-        animFrom = { x: pos.x, y: pos.y };
+        vel.x = 0;
+        vel.y = 0;
+        // Tip of small cursor ≈ center of sprite for arrive
+        animFrom = { x: pos.x + SIZE * 0.2, y: pos.y + SIZE * 0.15 };
         animTo = { x: dest.x, y: dest.y };
         animStart = performance.now();
         target = dest;
-        status.textContent = "Cody is pointing at " + id + "…";
+        status.textContent = "Cody left your cursor — pointing at " + id + "…";
         parent.postMessage({ type: "cody-status", mode: "animating", target: id }, "*");
       }
 
@@ -249,19 +264,15 @@
         mode = "follow";
         setSprite(false);
         clearHighlight();
-        status.textContent = "Cody is following you";
+        vel.x = 0;
+        vel.y = 0;
+        status.textContent = "Cody companion (lower-right of your cursor)";
         parent.postMessage({ type: "cody-status", mode: "follow" }, "*");
       }
 
       function onMove(x, y) {
         mouse.x = x;
         mouse.y = y;
-        if (mode === "follow") {
-          // Slight lag so it feels like a character, not the OS cursor
-          pos.x += (mouse.x - pos.x) * 0.35;
-          pos.y += (mouse.y - pos.y) * 0.35;
-          place(pos.x, pos.y);
-        }
       }
 
       window.addEventListener("mousemove", (e) => onMove(e.clientX, e.clientY));
@@ -275,11 +286,13 @@
           if (typeof data.x === "number" && typeof data.y === "number") {
             mode = "animating";
             setSprite(true);
-            animFrom = { x: pos.x, y: pos.y };
+            vel.x = 0;
+            vel.y = 0;
+            animFrom = { x: pos.x + SIZE * 0.2, y: pos.y + SIZE * 0.15 };
             animTo = { x: data.x, y: data.y };
             animStart = performance.now();
             target = { x: data.x, y: data.y, el: null };
-            status.textContent = "Cody is pointing…";
+            status.textContent = "Cody left your cursor — pointing…";
           } else if (data.id) {
             if (embedded) mock.hidden = false;
             document.body.classList.remove("embedded");
@@ -295,16 +308,19 @@
 
       function tick(now) {
         if (mode === "follow") {
-          pos.x += (mouse.x - pos.x) * 0.22;
-          pos.y += (mouse.y - pos.y) * 0.22;
-          place(pos.x, pos.y);
+          const slot = slotPos();
+          // Independent spring toward lower-right slot (not glued 1:1)
+          const ax = (slot.x - pos.x) * SPRING;
+          const ay = (slot.y - pos.y) * SPRING;
+          vel.x = (vel.x + ax) * DAMP;
+          vel.y = (vel.y + ay) * DAMP;
+          place(pos.x + vel.x, pos.y + vel.y);
         } else if (mode === "animating") {
           const t = Math.min(1, (now - animStart) / ANIM_MS);
           const e = easeInOutCubic(t);
-          place(
-            animFrom.x + (animTo.x - animFrom.x) * e,
-            animFrom.y + (animTo.y - animFrom.y) * e
-          );
+          const tipX = animFrom.x + (animTo.x - animFrom.x) * e;
+          const tipY = animFrom.y + (animTo.y - animFrom.y) * e;
+          place(tipX - SIZE * 0.2, tipY - SIZE * 0.15);
           if (t >= 1) {
             mode = "pointed";
             if (target && target.el) target.el.classList.add("highlight");
@@ -313,7 +329,7 @@
             ring.classList.remove("pop");
             void ring.offsetWidth;
             ring.classList.add("pop");
-            status.textContent = "Found it — pointed at the source";
+            status.textContent = "Found it — Cody pointed at the source";
             parent.postMessage({ type: "cody-status", mode: "pointed" }, "*");
           }
         }
@@ -331,8 +347,8 @@
         if (e.key === "Escape") resumeFollow();
       });
 
-      parent.postMessage({ type: "cody-ready", hotspot: HOTSPOT }, "*");
-      place(mouse.x, mouse.y);
+      parent.postMessage({ type: "cody-ready", slot: SLOT, size: SIZE }, "*");
+      place(pos.x, pos.y);
     })();
   </script>
 </body>
