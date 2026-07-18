@@ -49,12 +49,12 @@ def test_composition_builds_with_demo_stubs() -> None:
 def test_idle_window_constructs(qtbot) -> None:
     from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton
 
-    from orchestration.window import ClickyWindow
+    from orchestration.window import CodyWindow
 
-    window = ClickyWindow(folder="C:/Users/troy/Desktop")
+    window = CodyWindow(folder="C:/Users/troy/Desktop")
     qtbot.addWidget(window)
 
-    assert window.windowTitle() == "Clicky"
+    assert window.windowTitle() == "Cody"
     assert window.findChild(QLabel, "folderLabel") is not None
     assert window.findChild(QLineEdit, "queryEdit") is not None
     find_btn = window.findChild(QPushButton, "findButton")

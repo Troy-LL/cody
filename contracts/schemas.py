@@ -1,4 +1,4 @@
-"""TypedDict shapes for Clicky contracts (spec.md sections 6.1-6.7).
+"""TypedDict shapes for Cody contracts (spec.md sections 6.1-6.7).
 
 Consumers must tolerate unknown fields at runtime (spec section 6.9): TypedDict is a
 static shape, not a validator — never reject extra keys when reading dicts.

@@ -8,11 +8,11 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from orchestration.composition import build_app
-from orchestration.window import ClickyWindow
+from orchestration.window import CodyWindow
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Clicky orchestration shell")
+    parser = argparse.ArgumentParser(description="Cody orchestration shell")
     parser.add_argument(
         "--demo-stubs",
         action="store_true",
@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     bundle = build_app(demo_stubs=args.demo_stubs, voice_enabled=not args.no_voice)
 
     app = QApplication.instance() or QApplication(sys.argv)
-    window = ClickyWindow(controller=bundle.controller, folder=args.folder)
+    window = CodyWindow(controller=bundle.controller, folder=args.folder)
     window.show()
     return app.exec()
 

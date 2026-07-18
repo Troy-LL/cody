@@ -1,4 +1,4 @@
-"""pytest-qt smoke for ClickyWindow wiring."""
+"""pytest-qt smoke for CodyWindow wiring."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 
-from orchestration.controller import ClickyController, ControllerDeps
-from orchestration.window import ClickyWindow
+from orchestration.controller import CodyController, ControllerDeps
+from orchestration.window import CodyWindow
 
 
 def _fast_deps() -> ControllerDeps:
@@ -65,8 +65,8 @@ def _fast_deps() -> ControllerDeps:
 
 
 def test_window_find_updates_result(qtbot) -> None:
-    ctl = ClickyController(_fast_deps())
-    window = ClickyWindow(controller=ctl, folder=r"C:\Users\troy\Desktop")
+    ctl = CodyController(_fast_deps())
+    window = CodyWindow(controller=ctl, folder=r"C:\Users\troy\Desktop")
     qtbot.addWidget(window)
 
     window.query_edit.setText("yung resibo ko sa Lazada last week")
@@ -79,7 +79,7 @@ def test_window_find_updates_result(qtbot) -> None:
 
 
 def test_window_idle_without_controller(qtbot) -> None:
-    window = ClickyWindow(folder=r"C:\Users\troy\Desktop")
+    window = CodyWindow(folder=r"C:\Users\troy\Desktop")
     qtbot.addWidget(window)
     assert window.status_label.text() == "idle"
     assert window.find_button.isEnabled()

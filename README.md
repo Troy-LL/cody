@@ -1,8 +1,10 @@
-# Clicky / Cody — team map
+# Cody — team map
 
 **Product context:** [`spec.md`](spec.md) is the product source of truth (contracts, fixtures, demo scope).
 
-**Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md).
+**Sprint seats (6 people + stretch):** build in parallel against frozen contracts. OpenSpec domain specs live under [`openspec/specs/`](openspec/specs/). Team process: [`docs/team/SDD-ETIQUETTE.md`](docs/team/SDD-ETIQUETTE.md). Codex sprint agent pack: [`.codex/`](.codex/).
+
+**Git (enforced):** never push to `main`/`master` — feature branches + PR only (PM merge gate). Use **granular commits** (one concern each); auto-commit and push each slice on your branch.
 
 | Seat | Owner | Folders | Branch(es) | OpenSpec domain | Contract (`spec.md`) | Done when |
 |------|-------|---------|------------|-----------------|----------------------|-----------|
@@ -17,3 +19,4 @@
 **Locked for this sprint:** Windows demo machine · top-level folder scan · Person 6 owns reveal + voice · Troy owns orchestration only · Contracts/fixtures + PySide shell: `pyproject.toml`, `contracts/`, `fixtures/`, `python -m orchestration.main --demo-stubs`.
 
 **Team workflow OpenSpec:** [`openspec/specs/team-workflow/spec.md`](openspec/specs/team-workflow/spec.md).
+protection-smoke 2026-07-18T14:03:54.9822737+08:00

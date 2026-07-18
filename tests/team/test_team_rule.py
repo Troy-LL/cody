@@ -1,11 +1,11 @@
-"""Structural checks for .cursor/rules/team-sdd-memory.mdc."""
+"""Structural checks for .codex/rules/team-sdd-memory.mdc."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RULE_PATH = REPO_ROOT / ".cursor" / "rules" / "team-sdd-memory.mdc"
+RULE_PATH = REPO_ROOT / ".codex" / "rules" / "team-sdd-memory.mdc"
 
 REQUIRED_PHRASES = [
     "alwaysApply: true",
@@ -17,7 +17,8 @@ REQUIRED_PHRASES = [
     "TDD",
     "SDD review",
     "Cursor Grok 4.5",
-    "auto-commit",
+    "Never push",
+    "Granular commits",
     "git push -u origin HEAD",
     "Merge conflicts",
     "Evolution protocol",

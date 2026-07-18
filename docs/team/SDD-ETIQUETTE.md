@@ -1,4 +1,4 @@
-# SDD etiquette (Clicky / Cody sprint)
+# SDD etiquette (Cody sprint)
 
 Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`](../../spec.md). Process requirements live in [`openspec/specs/team-workflow/spec.md`](../../openspec/specs/team-workflow/spec.md).
 
@@ -36,15 +36,22 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Each task: implement with Cursor Grok 4.5 subagents per the SDD workflow, then run a review pass before merging.
 - Keep OpenSpec specs and component READMEs updated when behavior or contracts change.
 
-## Git: auto commit, push, and conflicts
+## Git: feature branches, granular commits, PR-only main
 
-- After each logical unit of work on your feature branch (tests green for that slice), **commit immediately** with a concise why-focused message. Do not wait to be asked.
-- After each commit, **push immediately** (`git push -u origin HEAD`). Do not batch "I'll push later."
-- Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens).
-- Never force-push `main` / `master`. Do not skip hooks unless the owner explicitly asks.
-- On merge conflicts: rebase or merge your branch, resolve **only files you own**, keep contracts additive-only, re-run your component tests, commit the resolution, then push. If the conflict is inside a teammate's folder, stop and escalate via the contract — do not edit their code to "win."
+- **Never push or commit directly to `main` / `master`.** Those branches are protected. Work only on your feature branch (e.g. `feature/indexer`, `person-2`). Landing on main is via PR + the PM merge-gate loop only.
+- **Granular commits required.** One concern per commit — stub, failing tests, implementation slice, docs note, etc. Do not squash a whole component into one mega-commit. Prefer many small why-focused messages.
+- After each logical slice (tests green for that slice), **commit immediately**, then **push immediately** (`git push -u origin HEAD`). Do not wait to be asked; do not batch.
+- Stage only owned/relevant files; never commit secrets (`.env`, keys, API tokens). Do not skip hooks unless the owner explicitly asks.
+- On merge conflicts: rebase onto latest `main`, resolve **only files you own**, keep contracts additive-only, re-run your component tests, commit the resolution, then push. If the conflict is inside a teammate's folder, stop and escalate via the contract — do not edit their code to "win."
+
+## Team Codex rule pack
+
+- Sprint agent pack lives under [`.codex/`](../../.codex/) (OpenSpec skills/commands, agents, team rule).
+- Always-on rule: [`.codex/rules/team-sdd-memory.mdc`](../../.codex/rules/team-sdd-memory.mdc) (tracked). Mirror: [`team-sdd-memory.mdc`](team-sdd-memory.mdc).
+- Do **not** gitignore `.codex/`.
+- Optional for Cursor IDE: create a local junction so Cursor still loads rules — `cmd /c mklink /J .cursor .codex` (keep `.cursor` local-only; it is gitignored).
 
 ## Team rule evolution
 
-- The always-on rule [`.cursor/rules/team-sdd-memory.mdc`](../../.cursor/rules/team-sdd-memory.mdc) may gain **Learned** bullets only after reviewed work lands.
+- The always-on rule may gain **Learned** bullets only after reviewed work lands.
 - New bullets must be durable, verified, team-wide conventions; cite source + date; replace stale lines; no secrets or guesses; max 10 learned bullets; must appear in the task diff.

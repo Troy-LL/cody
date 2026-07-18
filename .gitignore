@@ -9,6 +9,8 @@ dist/
 *.log
 .worktrees/
 .superpowers/
+# Local Cursor IDE junction to .codex (optional; see docs/team/SDD-ETIQUETTE.md)
+.cursor/
 .venv/
 __pycache__/
 .pytest_cache/

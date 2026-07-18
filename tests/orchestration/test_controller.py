@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from orchestration.controller import ClickyController, ControllerDeps, map_language_mode
+from orchestration.controller import CodyController, ControllerDeps, map_language_mode
 
 
 def _deps(
@@ -87,7 +87,7 @@ def test_map_language_mode_auto() -> None:
 
 
 def test_happy_path_states(qtbot) -> None:
-    ctl = ClickyController(_deps())
+    ctl = CodyController(_deps())
     states: list[str] = []
     ctl.state_changed.connect(states.append)
     results: list[object] = []
@@ -108,7 +108,7 @@ def test_happy_path_states(qtbot) -> None:
 
 def test_segments_sequenced_before_reveal(qtbot) -> None:
     """§6.7: segments light with delay; OS reveal lands on the final segment."""
-    ctl = ClickyController(_deps(segment_delay_ms=40))
+    ctl = CodyController(_deps(segment_delay_ms=40))
     events: list[tuple[str, float]] = []
 
     ctl.segment_lit.connect(lambda s, i: events.append((f"seg:{s}", time.perf_counter())))
@@ -132,7 +132,7 @@ def test_segments_sequenced_before_reveal(qtbot) -> None:
 
 
 def test_reveal_failure_is_error(qtbot) -> None:
-    ctl = ClickyController(_deps(reveal_ok=False))
+    ctl = CodyController(_deps(reveal_ok=False))
     errors: list[str] = []
     ctl.error_occurred.connect(errors.append)
     ctl.submit(r"C:\Users\troy\Desktop", "q")
@@ -142,7 +142,7 @@ def test_reveal_failure_is_error(qtbot) -> None:
 
 
 def test_voice_failure_still_result(qtbot) -> None:
-    ctl = ClickyController(_deps(speak_ok=False))
+    ctl = CodyController(_deps(speak_ok=False))
     speak_flags: list[bool] = []
     ctl.speak_triggered.connect(speak_flags.append)
     ctl.submit(r"C:\Users\troy\Desktop", "q")
@@ -151,7 +151,7 @@ def test_voice_failure_still_result(qtbot) -> None:
 
 
 def test_voice_disabled_skips_speak(qtbot) -> None:
-    ctl = ClickyController(_deps(voice_enabled=False, speak_ok=False))
+    ctl = CodyController(_deps(voice_enabled=False, speak_ok=False))
     speak_flags: list[bool] = []
     ctl.speak_triggered.connect(speak_flags.append)
     ctl.submit(r"C:\Users\troy\Desktop", "q")
@@ -160,6 +160,6 @@ def test_voice_disabled_skips_speak(qtbot) -> None:
 
 
 def test_pipeline_exception_errors(qtbot) -> None:
-    ctl = ClickyController(_deps(boom=True))
+    ctl = CodyController(_deps(boom=True))
     ctl.submit(r"C:\Users\troy\Desktop", "q")
     qtbot.waitUntil(lambda: ctl.state == "error", timeout=3000)

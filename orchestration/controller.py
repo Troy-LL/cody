@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from contracts.interfaces import Extract, IndexFolder, Match, ParseQuery, Reveal, Speak
 from orchestration.pipeline import PipelineResolution, run_pipeline
 
-# Default gap between breadcrumb segments so the UI visibly narrows in (§6.7).
+# Default gap between breadcrumb segments so the UI visibly narrows in (Â§6.7).
 DEFAULT_SEGMENT_DELAY_MS = 250
 
 
@@ -56,11 +56,11 @@ class _PipelineWorker(QObject):
                 match=self._deps.match,
             )
             self.finished.emit(resolution)
-        except Exception as exc:  # noqa: BLE001 — surface to UI as error state
+        except Exception as exc:  # noqa: BLE001 â€” surface to UI as error state
             self.failed.emit(str(exc))
 
 
-class ClickyController(QObject):
+class CodyController(QObject):
     """Owns query lifecycle and Qt signals for the shell."""
 
     state_changed = Signal(str)
@@ -145,7 +145,7 @@ class ClickyController(QObject):
         return mode
 
     def _start_reveal_animation(self, resolution: PipelineResolution) -> None:
-        """Light segments in sequence, then fire OS reveal on the final tick (§6.7)."""
+        """Light segments in sequence, then fire OS reveal on the final tick (Â§6.7)."""
         self._segments = list(resolution.animation["segments"])
         self._segment_index = 0
         if not self._segments:
@@ -169,7 +169,7 @@ class ClickyController(QObject):
         self._segment_index = index + 1
 
         if self._segment_index >= len(self._segments):
-            # Final segment lit — land OS reveal as the animation completes.
+            # Final segment lit â€” land OS reveal as the animation completes.
             self._finish_reveal(resolution)
             return
 

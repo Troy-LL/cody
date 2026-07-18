@@ -1,6 +1,6 @@
 ## Purpose
 
-Defines how the six-person Clicky sprint collaborates without file conflicts: ownership boundaries, additive contracts, stub-first integration, and sources of truth.
+Defines how the six-person Cody sprint collaborates without file conflicts: ownership boundaries, additive contracts, stub-first integration, and sources of truth.
 
 ## Requirements
 
