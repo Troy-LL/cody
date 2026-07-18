@@ -15,6 +15,7 @@ dependencies = [
     "pytest",
     "pytest-qt",
     "pypdf",
+    "datasets",
 ]
 
 [tool.setuptools.packages.find]
@@ -26,6 +27,7 @@ include = [
     "extractor*",
     "nlu*",
     "matcher*",
+    "data*",
     "reveal*",
     "voice*",
 ]
