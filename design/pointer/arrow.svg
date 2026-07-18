@@ -1,0 +1,27 @@
+<!--
+  Clicky pointer overlay - locked arrow-v1 "Dart"
+  Purpose: optional section 6.8 post-reveal icon pointer.
+  Logical tip/hotspot: x=12, y=22 in the 0 0 24 24 viewBox.
+
+  The charcoal outline is the light-Explorer default. For dark Explorer,
+  replace the pointer-outline stroke with its data-outline-dark value before
+  rendering. PNG fallbacks use the default light-background presentation.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>Clicky icon landing pointer</title>
+  <desc>Signal-blue dart whose bottom tip is the icon-center landing hotspot.</desc>
+  <path
+    class="pointer-outline"
+    data-outline-light="#0F172A"
+    data-outline-dark="#F8FAFC"
+    d="M12,2 L17,13 L12,22 L7,13 Z"
+    fill="#2563EB"
+    stroke="#0F172A"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M9,17 L15,17 L12,22 Z"
+    fill="#1E3A8A"
+  />
+</svg>

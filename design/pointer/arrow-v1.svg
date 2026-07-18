@@ -1,0 +1,42 @@
+<!--
+  Clicky pointer overlay - arrow-v1 "Dart"
+  Metaphor: a thrown dart, a single confident kite-shaped body narrowing to
+  one sharp tip. Two-tone body (signal-blue upper half, deep-blue lower
+  facet) reads as "contact" at the tip rather than a flat silhouette.
+  Tip point (the pixel that must land on the icon): x=12, y=22.
+
+  Dual-background outline convention: two overlapping outline paths trace the
+  same kite silhouette. `.pointer-outline-light` (charcoal #0F172A) is the
+  default outline, visible as shipped, for light Explorer backgrounds (e.g.
+  #FFFFFF). `.pointer-outline-dark` (paper #F8FAFC, from palette.json) is the
+  outline for dark Explorer backgrounds (e.g. #1E1E1E) and ships with inline
+  `style="display:none"`. An integrator targeting a dark Explorer theme picks
+  it by swapping which of the two paths carries `display:none` (string
+  replace, DOM/class toggle, or equivalent) before rendering or exporting.
+  Inline `style` (not a CSS media query) drives the toggle so the choice is
+  explicit and doesn't depend on a renderer supporting
+  `prefers-color-scheme` (e.g. headless PNG export tooling).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path
+    class="pointer-outline-light"
+    d="M12,2 L17,13 L12,22 L7,13 Z"
+    fill="#2563EB"
+    stroke="#0F172A"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <path
+    class="pointer-outline-dark"
+    d="M12,2 L17,13 L12,22 L7,13 Z"
+    fill="#2563EB"
+    stroke="#F8FAFC"
+    stroke-width="2"
+    stroke-linejoin="round"
+    style="display:none"
+  />
+  <path
+    d="M9,17 L15,17 L12,22 Z"
+    fill="#1E3A8A"
+  />
+</svg>

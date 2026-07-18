@@ -1,0 +1,39 @@
+{
+  "variant": "arrow-v1",
+  "asset": "arrow.svg",
+  "viewBox": "0 0 24 24",
+  "width": 24,
+  "height": 24,
+  "tip_x": 12,
+  "tip_y": 22,
+  "normalized_tip_x": 0.5,
+  "normalized_tip_y": 0.9166666667,
+  "target_anchor": "icon-center",
+  "ring": {
+    "asset": "ring.svg",
+    "viewBox": "0 0 24 24",
+    "center_x": 12,
+    "center_y": 12,
+    "normalized_center_x": 0.5,
+    "normalized_center_y": 0.5,
+    "target_anchor": "icon-center"
+  },
+  "png_fallbacks": [
+    {
+      "asset": "arrow-64.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "asset": "arrow-128.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "asset": "arrow-256.png",
+      "width": 256,
+      "height": 256
+    }
+  ],
+  "usage": "After reveal succeeds, place arrow.svg so its logical tip lands on the resolved file-icon center: for rendered width W and height H, set top-left to (icon_center_x - W * normalized_tip_x, icon_center_y - H * normalized_tip_y). Place ring.svg with the normalized center coordinates in the ring object. The transparent PNGs use the default charcoal outline for light Explorer backgrounds. For dark Explorer backgrounds, use arrow.svg and set the pointer-outline stroke to its data-outline-dark value (#F8FAFC) before rendering."
+}

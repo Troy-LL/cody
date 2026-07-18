@@ -1,0 +1,26 @@
+<!--
+  Clicky pointer overlay - ring.svg "Halo"
+  Metaphor: a single ring that settles around the icon instead of an
+  arrow tip. An outline ring behind a signal-blue ring on top keeps it
+  readable on both light and dark Explorer backgrounds. A static single
+  frame; any pulse animation is applied by whoever integrates this asset,
+  not baked in here (no continuous mouse-follow, no shimmer).
+  Convergence point (ring center, coincides with the icon center): x=12, y=12.
+
+  Dual-background outline convention: two overlapping outline circles sit
+  behind the signal-blue ring. `.pointer-outline-light` (charcoal #0F172A)
+  is the default outline, visible as shipped, for light Explorer
+  backgrounds (e.g. #FFFFFF). `.pointer-outline-dark` (paper #F8FAFC, from
+  palette.json) is the outline for dark Explorer backgrounds (e.g. #1E1E1E)
+  and ships with inline `style="display:none"`. An integrator targeting a
+  dark Explorer theme picks it by swapping which of the two circles carries
+  `display:none` (string replace, DOM/class toggle, or equivalent) before
+  rendering or exporting. Inline `style` (not a CSS media query) drives the
+  toggle so the choice is explicit and doesn't depend on a renderer
+  supporting `prefers-color-scheme` (e.g. headless PNG export tooling).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle class="pointer-outline-light" cx="12" cy="12" r="8" fill="none" stroke="#0F172A" stroke-width="3.5" />
+  <circle class="pointer-outline-dark" cx="12" cy="12" r="8" fill="none" stroke="#F8FAFC" stroke-width="3.5" style="display:none" />
+  <circle cx="12" cy="12" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" />
+</svg>
