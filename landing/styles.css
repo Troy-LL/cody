@@ -1,5 +1,6 @@
 :root {
   --color-primary: #1b4fd8;
+  --color-primary-hover: #1640b0;
   --color-text: #0a1628;
   --color-bg: #e8f0fe;
   --color-white: #ffffff;
@@ -104,7 +105,7 @@ a:focus-visible {
 }
 
 .cta:hover {
-  background-color: #1640b0;
+  background-color: var(--color-primary-hover);
 }
 
 /* Sections */
@@ -182,6 +183,32 @@ a:focus-visible {
   max-width: 36rem;
 }
 
+.demo-pointer {
+  position: relative;
+  margin-top: var(--space-lg);
+  width: min(14rem, 70%);
+  height: 2rem;
+}
+
+.demo-pointer__line {
+  display: block;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-primary) 35%, var(--color-primary) 100%);
+  border-radius: 1px;
+}
+
+.demo-pointer__tip {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 12px solid var(--color-primary);
+  transform: translateY(-50%);
+}
+
 /* Closing CTA */
 
 .closing-cta {
@@ -250,4 +277,22 @@ a:focus-visible {
   .steps {
     gap: var(--space-xl);
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .cta {
+    transition: none;
+  }
+
+  .demo-pointer {
+    display: none;
+  }
+}
+
+html.reduced-motion .demo-pointer {
+  display: none;
 }
