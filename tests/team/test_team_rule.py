@@ -17,6 +17,8 @@ REQUIRED_PHRASES = [
     "TDD",
     "SDD review",
     "Cursor Grok 4.5",
+    "git push -u origin HEAD",
+    "Merge conflicts",
     "Evolution protocol",
     "source+date",
     "max 10 learned",
