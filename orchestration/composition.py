@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from orchestration.controller import ClickyController, ControllerDeps
+from orchestration.controller import CodyController, ControllerDeps
 from orchestration.demo_stubs import DemoStubs
 
 
@@ -12,7 +12,7 @@ from orchestration.demo_stubs import DemoStubs
 class AppBundle:
     """Wired controller + optional stubs for recovery path."""
 
-    controller: ClickyController
+    controller: CodyController
     stubs: DemoStubs | None
     demo_stubs: bool
 
@@ -64,5 +64,5 @@ def build_app(
     else:
         deps = _live_deps(voice_enabled=voice_enabled)
 
-    controller = ClickyController(deps)
+    controller = CodyController(deps)
     return AppBundle(controller=controller, stubs=stubs, demo_stubs=demo_stubs)

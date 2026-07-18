@@ -6,9 +6,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "clicky"
+name = "cody"
 version = "0.1.0"
-description = "Clicky — AI that shows you where a file is"
+description = "Cody — AI that shows you where a file is"
 requires-python = ">=3.12"
 dependencies = [
     "PySide6",
