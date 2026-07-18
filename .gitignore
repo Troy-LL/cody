@@ -1,0 +1,9 @@
+.codegraph/
+.code-review-graph/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+node_modules/
+dist/
+*.log
