@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from orchestration.controller import ClickyController, ControllerDeps, map_language_mode
@@ -13,6 +14,7 @@ def _deps(
     speak_ok: bool = True,
     voice_enabled: bool = True,
     boom: bool = False,
+    segment_delay_ms: int = 0,
 ) -> ControllerDeps:
     def index_folder(path: str) -> list[dict[str, Any]]:
         del path
@@ -74,6 +76,7 @@ def _deps(
         speak=speak,
         voice_enabled=voice_enabled,
         language_mode="auto",
+        segment_delay_ms=segment_delay_ms,
     )
 
 
@@ -101,6 +104,31 @@ def test_happy_path_states(qtbot) -> None:
     assert states[-1] == "result"
     assert results
     assert segments[0] == "Desktop"
+
+
+def test_segments_sequenced_before_reveal(qtbot) -> None:
+    """§6.7: segments light with delay; OS reveal lands on the final segment."""
+    ctl = ClickyController(_deps(segment_delay_ms=40))
+    events: list[tuple[str, float]] = []
+
+    ctl.segment_lit.connect(lambda s, i: events.append((f"seg:{s}", time.perf_counter())))
+    ctl.reveal_triggered.connect(lambda ok: events.append((f"reveal:{ok}", time.perf_counter())))
+
+    ctl.submit(r"C:\Users\troy\Desktop", "q")
+    qtbot.waitUntil(lambda: ctl.state == "result", timeout=3000)
+
+    kinds = [name for name, _ in events]
+    assert kinds[0].startswith("seg:")
+    assert kinds[-1] == "reveal:True"
+    assert any(k == "seg:Desktop" for k in kinds)
+    assert any(k.endswith("receipt_lazada.pdf") for k in kinds)
+
+    seg_times = [t for name, t in events if name.startswith("seg:")]
+    reveal_time = next(t for name, t in events if name.startswith("reveal:"))
+    assert len(seg_times) >= 2
+    assert seg_times[-1] <= reveal_time
+    # Gap between first two segments roughly respects delay (not a tight sync loop).
+    assert seg_times[1] - seg_times[0] >= 0.02
 
 
 def test_reveal_failure_is_error(qtbot) -> None:
