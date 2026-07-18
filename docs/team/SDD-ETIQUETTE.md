@@ -31,9 +31,9 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Ownership and handoff: root `README.md` + each component `README.md`.
 - If code and docs disagree for this session, the owner updates the owning doc in the same change.
 
-## SDD with Cursor Grok 4.5
+## SDD with Grok 4.5
 
-- Each task: implement with Cursor Grok 4.5 subagents per the SDD workflow, then run a review pass before merging.
+- Each task: implement with Grok 4.5 subagents per the SDD workflow, then run a review pass before merging.
 - Keep OpenSpec specs and component READMEs updated when behavior or contracts change.
 
 ## Git: always branch, granular commits, PR-only main
@@ -51,7 +51,6 @@ Follow this for the whole 6-person sprint. Product contracts live in [`spec.md`]
 - Sprint agent pack lives under [`.codex/`](../../.codex/) (OpenSpec skills/commands, agents, team rule).
 - Always-on rule: [`.codex/rules/team-sdd-memory.mdc`](../../.codex/rules/team-sdd-memory.mdc) (tracked). Mirror: [`team-sdd-memory.mdc`](team-sdd-memory.mdc).
 - Do **not** gitignore `.codex/`.
-- Optional for Cursor IDE: create a local junction so Cursor still loads rules — `cmd /c mklink /J .cursor .codex` (keep `.cursor` local-only; it is gitignored).
 
 ## Team rule evolution
 

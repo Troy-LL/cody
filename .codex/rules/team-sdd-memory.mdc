@@ -13,7 +13,7 @@ Before work: read root README, your component README, and `openspec/specs/<domai
 - Only `orchestration/` imports other components.
 - TDD: write or update failing tests before implementation for behavior changes.
 - SDD review: OpenSpec + README stay SoT; finish with a review pass.
-- Subagents: Cursor Grok 4.5 for task implementation and review.
+- Subagents: Grok 4.5 for task implementation and review.
 
 ## Git (always branch, PR-only main)
 - Always start work from latest `main` on a new feature branch (`git checkout -b feature/<area>`). Never develop on `main`/`master`.
