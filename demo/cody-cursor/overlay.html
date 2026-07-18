@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cody cursor overlay</title>
+  <style>
+    :root {
+      --cody-blue: #1b4fd8;
+      --cody-ink: #0a1628;
+      --cody-wash: #e8f0fe;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      cursor: none;
+    }
+    /* Click-through except HUD controls */
+    .stage {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+    #cody-cursor {
+      position: fixed;
+      width: 48px;
+      height: 48px;
+      left: 0;
+      top: 0;
+      transform: translate(-6px, -4px); /* hotspot */
+      pointer-events: none;
+      z-index: 2147483646;
+      will-change: left, top, opacity;
+      filter: drop-shadow(0 2px 4px rgba(10, 22, 40, 0.35));
+      transition: opacity 120ms ease;
+    }
+    #cody-cursor img {
+      display: block;
+      width: 48px;
+      height: 48px;
+    }
+    .hud {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 2147483647;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      pointer-events: auto;
+      cursor: default;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(10, 22, 40, 0.82);
+      color: #fff;
+      font-size: 13px;
+      max-width: min(520px, calc(100vw - 32px));
+    }
+    .hud button {
+      border: 0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: var(--cody-blue);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .hud button:hover { filter: brightness(1.08); }
+    .hud button.secondary {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.35);
+    }
+    .hud kbd {
+      font: inherit;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.12);
+    }
+    /* Mock “desktop” sources for local demo when not over a real page */
+    .mock-desktop {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, #dce8fc 0%, transparent 55%),
+        linear-gradient(180deg, #f4f7fb 0%, #e8eef6 100%);
+      z-index: 0;
+    }
+    .mock-desktop[hidden] { display: none !important; }
+    .file {
+      position: absolute;
+      width: 88px;
+      text-align: center;
+      color: var(--cody-ink);
+      font-size: 11px;
+      line-height: 1.25;
+      pointer-events: auto;
+      cursor: default;
+    }
+    .file .icon {
+      width: 56px;
+      height: 64px;
+      margin: 0 auto 6px;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #c5d0e0;
+      box-shadow: 0 2px 8px rgba(10, 22, 40, 0.08);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+    }
+    .file.highlight .icon {
+      outline: 3px solid var(--cody-blue);
+      outline-offset: 2px;
+    }
+    .ring {
+      position: fixed;
+      width: 28px;
+      height: 28px;
+      margin: -14px 0 0 -14px;
+      border: 2px solid var(--cody-blue);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 2147483645;
+    }
+    .ring.pop {
+      animation: pop 600ms ease-out forwards;
+    }
+    @keyframes pop {
+      0% { opacity: 0.9; transform: scale(0.4); }
+      100% { opacity: 0; transform: scale(2.2); }
+    }
+    body.embedded .mock-desktop { display: none !important; }
+    body.embedded { background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="mock-desktop" id="mock-desktop" aria-hidden="true">
+    <div class="file" data-id="lazada" style="left: 18%; top: 28%;">
+      <div class="icon">📄</div>
+      receipt_lazada.pdf
+    </div>
+    <div class="file" data-id="shopee" style="left: 42%; top: 36%;">
+      <div class="icon">📄</div>
+      invoice_shopee.pdf
+    </div>
+    <div class="file" data-id="notes" style="left: 66%; top: 24%;">
+      <div class="icon">📝</div>
+      meeting_notes.txt
+    </div>
+  </div>
+
+  <div class="stage">
+    <div id="cody-cursor" aria-hidden="true">
+      <img id="cody-cursor-img" alt="" width="48" height="48" />
+    </div>
+    <div class="ring" id="ring" aria-hidden="true"></div>
+  </div>
+
+  <div class="hud" id="hud">
+    <span id="status">Cody is following you</span>
+    <button type="button" id="btn-point" title="Point at Lazada receipt">Point → Lazada</button>
+    <button type="button" id="btn-shopee" class="secondary">Point → Shopee</button>
+    <button type="button" id="btn-follow" class="secondary">Follow again</button>
+    <span><kbd>1</kbd>/<kbd>2</kbd> point · <kbd>Esc</kbd> follow</span>
+  </div>
+
+  <script>
+    (function () {
+      const ASSET_DEFAULT = "../../assets/cody-cursor/cursor-default.svg";
+      const ASSET_POINT = "../../assets/cody-cursor/cursor-point.svg";
+      const HOTSPOT = { x: 6, y: 4 };
+
+      const params = new URLSearchParams(location.search);
+      const embedded = params.get("embed") === "1" || window.parent !== window;
+      if (embedded) document.body.classList.add("embedded");
+
+      const el = document.getElementById("cody-cursor");
+      const img = document.getElementById("cody-cursor-img");
+      const ring = document.getElementById("ring");
+      const status = document.getElementById("status");
+      const mock = document.getElementById("mock-desktop");
+
+      img.src = ASSET_DEFAULT;
+
+      let mode = "follow"; // follow | animating | pointed
+      let mouse = { x: innerWidth / 2, y: innerHeight / 2 };
+      let pos = { x: mouse.x, y: mouse.y };
+      let target = null;
+      let animStart = 0;
+      let animFrom = { x: 0, y: 0 };
+      let animTo = { x: 0, y: 0 };
+      const ANIM_MS = 900;
+
+      function setSprite(pointing) {
+        img.src = pointing ? ASSET_POINT : ASSET_DEFAULT;
+      }
+
+      function place(x, y) {
+        pos.x = x;
+        pos.y = y;
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+      }
+
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+
+      function fileCenter(id) {
+        const node = document.querySelector('.file[data-id="' + id + '"] .icon');
+        if (!node) return null;
+        const r = node.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: node.closest(".file") };
+      }
+
+      function clearHighlight() {
+        document.querySelectorAll(".file.highlight").forEach((n) => n.classList.remove("highlight"));
+      }
+
+      function pointAt(id) {
+        if (embedded && !document.querySelector('.file[data-id="' + id + '"]')) {
+          // In embed mode without mock icons: point to a relative screen spot
+          // Host can postMessage {type:'cody-point', x, y} instead.
+          status.textContent = "No mock target in embed — send cody-point from host";
+          return;
+        }
+        const dest = fileCenter(id);
+        if (!dest) return;
+        mode = "animating";
+        setSprite(true);
+        clearHighlight();
+        animFrom = { x: pos.x, y: pos.y };
+        animTo = { x: dest.x, y: dest.y };
+        animStart = performance.now();
+        target = dest;
+        status.textContent = "Cody is pointing at " + id + "…";
+        parent.postMessage({ type: "cody-status", mode: "animating", target: id }, "*");
+      }
+
+      function resumeFollow() {
+        mode = "follow";
+        setSprite(false);
+        clearHighlight();
+        status.textContent = "Cody is following you";
+        parent.postMessage({ type: "cody-status", mode: "follow" }, "*");
+      }
+
+      function onMove(x, y) {
+        mouse.x = x;
+        mouse.y = y;
+        if (mode === "follow") {
+          // Slight lag so it feels like a character, not the OS cursor
+          pos.x += (mouse.x - pos.x) * 0.35;
+          pos.y += (mouse.y - pos.y) * 0.35;
+          place(pos.x, pos.y);
+        }
+      }
+
+      window.addEventListener("mousemove", (e) => onMove(e.clientX, e.clientY));
+
+      window.addEventListener("message", (e) => {
+        const data = e.data || {};
+        if (data.type === "cody-mouse" && typeof data.x === "number") {
+          onMove(data.x, data.y);
+        }
+        if (data.type === "cody-point") {
+          if (typeof data.x === "number" && typeof data.y === "number") {
+            mode = "animating";
+            setSprite(true);
+            animFrom = { x: pos.x, y: pos.y };
+            animTo = { x: data.x, y: data.y };
+            animStart = performance.now();
+            target = { x: data.x, y: data.y, el: null };
+            status.textContent = "Cody is pointing…";
+          } else if (data.id) {
+            if (embedded) mock.hidden = false;
+            document.body.classList.remove("embedded");
+            pointAt(data.id);
+          }
+        }
+        if (data.type === "cody-follow") resumeFollow();
+        if (data.type === "cody-hide-mock") {
+          mock.hidden = true;
+          document.body.classList.add("embedded");
+        }
+      });
+
+      function tick(now) {
+        if (mode === "follow") {
+          pos.x += (mouse.x - pos.x) * 0.22;
+          pos.y += (mouse.y - pos.y) * 0.22;
+          place(pos.x, pos.y);
+        } else if (mode === "animating") {
+          const t = Math.min(1, (now - animStart) / ANIM_MS);
+          const e = easeInOutCubic(t);
+          place(
+            animFrom.x + (animTo.x - animFrom.x) * e,
+            animFrom.y + (animTo.y - animFrom.y) * e
+          );
+          if (t >= 1) {
+            mode = "pointed";
+            if (target && target.el) target.el.classList.add("highlight");
+            ring.style.left = animTo.x + "px";
+            ring.style.top = animTo.y + "px";
+            ring.classList.remove("pop");
+            void ring.offsetWidth;
+            ring.classList.add("pop");
+            status.textContent = "Found it — pointed at the source";
+            parent.postMessage({ type: "cody-status", mode: "pointed" }, "*");
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      document.getElementById("btn-point").onclick = () => pointAt("lazada");
+      document.getElementById("btn-shopee").onclick = () => pointAt("shopee");
+      document.getElementById("btn-follow").onclick = resumeFollow;
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "1") pointAt("lazada");
+        if (e.key === "2") pointAt("shopee");
+        if (e.key === "Escape") resumeFollow();
+      });
+
+      parent.postMessage({ type: "cody-ready", hotspot: HOTSPOT }, "*");
+      place(mouse.x, mouse.y);
+    })();
+  </script>
+</body>
+</html>
