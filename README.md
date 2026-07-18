@@ -17,3 +17,4 @@
 **Locked for this sprint:** Windows demo machine · top-level folder scan · Person 6 owns reveal + voice · Troy owns orchestration only · Contracts/fixtures + PySide shell: `pyproject.toml`, `contracts/`, `fixtures/`, `python -m orchestration.main --demo-stubs`.
 
 **Team workflow OpenSpec:** [`openspec/specs/team-workflow/spec.md`](openspec/specs/team-workflow/spec.md).
+protection-smoke 2026-07-18T14:03:54.9822737+08:00
