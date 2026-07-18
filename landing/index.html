@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Cody is an AI that shows you where something is instead of telling you how to find it.">
+  <title>Cody — It points to the file.</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.css">
+</head>
+<body>
+  <main>
+    <section id="hero" class="hero" aria-labelledby="hero-headline">
+      <div class="hero__inner">
+        <p class="wordmark" aria-hidden="true">Cody</p>
+        <h1 id="hero-headline" class="hero__headline">It points to the file.</h1>
+        <p class="hero__support">
+          Cody is an AI that shows you where something is instead of telling you how to find it.
+        </p>
+        <a class="cta" href="https://github.com/Troy-LL/cody">View on GitHub</a>
+      </div>
+    </section>
+
+    <section id="how" class="section how" aria-labelledby="how-heading">
+      <div class="section__inner">
+        <h2 id="how-heading" class="section__title">How it works</h2>
+        <ol class="steps">
+          <li class="step">
+            <span class="step__number" aria-hidden="true">1</span>
+            <div class="step__content">
+              <h3 class="step__title">Ask</h3>
+              <p class="step__text">
+                Describe a file in natural language — Taglish, English, messy phrasing welcome.
+              </p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step__number" aria-hidden="true">2</span>
+            <div class="step__content">
+              <h3 class="step__title">Match</h3>
+              <p class="step__text">
+                Cody reasons over your files and picks the one that fits, with a clear why.
+              </p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step__number" aria-hidden="true">3</span>
+            <div class="step__content">
+              <h3 class="step__title">Point</h3>
+              <p class="step__text">
+                Your OS reveals the file and Cody speaks the confirmation — no folder-by-folder instructions.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="demo" class="section demo" aria-labelledby="demo-heading">
+      <div class="section__inner">
+        <h2 id="demo-heading" class="section__title">The demo moment</h2>
+        <p class="demo__pitch">
+          Watch Explorer select the file while Cody says the name aloud. No guessing which window,
+          no scrolling through Downloads — just a finger on the file.
+        </p>
+      </div>
+    </section>
+
+    <section id="cta" class="section closing-cta" aria-labelledby="cta-heading">
+      <div class="section__inner closing-cta__inner">
+        <h2 id="cta-heading" class="section__title">See the code</h2>
+        <p class="closing-cta__text">
+          Cody is open source. Clone the repo, run the demo, and point at files on your own machine.
+        </p>
+        <a class="cta" href="https://github.com/Troy-LL/cody">View on GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p class="footer__brand">Cody</p>
+      <a class="footer__link" href="https://github.com/Troy-LL/cody">GitHub</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js" defer></script>
+  <script src="main.js" defer></script>
+</body>
+</html>
