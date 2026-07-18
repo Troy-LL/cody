@@ -222,13 +222,35 @@
     <button type="button" id="btn-point">Point → Lazada</button>
     <button type="button" id="btn-shopee" class="secondary">Point → Shopee</button>
     <button type="button" id="btn-follow" class="secondary">Follow again</button>
-    <span><kbd>1</kbd>/<kbd>2</kbd> · <kbd>V</kbd> mic · <kbd>Esc</kbd> follow</span>
+    <span><kbd>1</kbd>/<kbd>2</kbd> · hold <kbd>V</kbd> talk · <kbd>Esc</kbd> follow</span>
   </div>
 
   <script>
     (function () {
-      const ASSET_DEFAULT = "../../assets/cody-cursor/cursor-default.svg";
-      const ASSET_POINT = "../../assets/cody-cursor/cursor-point.svg";
+      // Inline data URIs — avoids broken <img> when a sibling SVG file is corrupt / 404
+      const ASSET_DEFAULT =
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">' +
+            '<path d="M6 4 L6 36 L14.5 28.5 L20 42 L26 39.5 L20.5 26 L32 26 Z" fill="#1B4FD8" stroke="#0A1628" stroke-width="1.5" stroke-linejoin="round"/>' +
+            '<circle cx="34" cy="14" r="9" fill="#E8F0FE" stroke="#1B4FD8" stroke-width="2"/>' +
+            '<circle cx="31.5" cy="13" r="1.4" fill="#0A1628"/>' +
+            '<circle cx="36.5" cy="13" r="1.4" fill="#0A1628"/>' +
+            '<path d="M31 17.5 Q34 20 37 17.5" stroke="#0A1628" stroke-width="1.4" stroke-linecap="round" fill="none"/>' +
+            "</svg>"
+        );
+      const ASSET_POINT =
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">' +
+            '<path d="M6 4 L4 34 L13 27 L17.5 41 L24 38 L19.5 24.5 L31 22 Z" fill="#1B4FD8" stroke="#0A1628" stroke-width="1.5" stroke-linejoin="round"/>' +
+            '<circle cx="36" cy="12" r="9" fill="#E8F0FE" stroke="#1B4FD8" stroke-width="2"/>' +
+            '<circle cx="33.5" cy="11" r="1.4" fill="#0A1628"/>' +
+            '<circle cx="38.5" cy="11" r="1.4" fill="#0A1628"/>' +
+            '<path d="M33 16.5 Q36 19.5 39 16.5" stroke="#0A1628" stroke-width="1.4" stroke-linecap="round" fill="none"/>' +
+            '<circle cx="10" cy="10" r="3" fill="#FFD166" opacity="0.9"/>' +
+            "</svg>"
+        );
       const SLOT = { x: 18, y: 22 };
       const CAPTION_GAP = { x: 34, y: -4 };
       const SIZE = 28;
@@ -253,6 +275,9 @@
       if (hideMock) mock.classList.add("hidden");
 
       img.src = ASSET_DEFAULT;
+      // Warm the point sprite so the first point swap never flashes broken
+      const preloadPoint = new Image();
+      preloadPoint.src = ASSET_POINT;
 
       const THOUGHTS = {
         lazada: "I think this is your Lazada receipt.",
@@ -530,26 +555,34 @@
         };
       }
 
-      let micToggleLockUntil = 0;
+      let vHeld = false;
 
-      function toggleMic() {
-        const now = Date.now();
-        if (now < micToggleLockUntil) return;
-        micToggleLockUntil = now + 450;
+      function startMic() {
         if (!recognition) {
           status.textContent = "Speech recognition unavailable";
           return;
         }
-        if (listening) {
-          try { recognition.stop(); } catch (_) {}
-          stopMeter();
-          return;
-        }
+        if (listening) return;
         try {
           recognition.start();
         } catch (_) {
           status.textContent = "Mic busy — try again";
         }
+      }
+
+      function stopMic() {
+        if (!recognition) return;
+        if (!listening) {
+          stopMeter();
+          return;
+        }
+        try { recognition.stop(); } catch (_) {}
+        stopMeter();
+      }
+
+      function toggleMic() {
+        if (listening) stopMic();
+        else startMic();
       }
 
       function onMove(x, y) {
@@ -634,17 +667,30 @@
         toggleMic();
       };
 
-      // keyup + ignore repeats so holding V does not spam start/stop
+      // V = hold-to-talk (ignore key-repeat). Button still toggles.
       window.addEventListener("keydown", function (e) {
         if (e.repeat) return;
         if (e.key === "1") pointAt("lazada");
         if (e.key === "2") pointAt("shopee");
         if (e.key === "Escape") resumeFollow();
+        if (e.key === "v" || e.key === "V") {
+          e.preventDefault();
+          if (vHeld) return;
+          vHeld = true;
+          startMic();
+        }
       });
       window.addEventListener("keyup", function (e) {
         if (e.key === "v" || e.key === "V") {
           e.preventDefault();
-          toggleMic();
+          vHeld = false;
+          stopMic();
+        }
+      });
+      window.addEventListener("blur", function () {
+        if (vHeld) {
+          vHeld = false;
+          stopMic();
         }
       });
 
