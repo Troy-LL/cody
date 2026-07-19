@@ -15,7 +15,7 @@ from overlay.ocr_targets import (
     scan_full_screen,
 )
 from overlay.hotkey import HotkeyFilter, WM_HOTKEY
-from overlay.query_parse import extract_search_phrase, parse_hey_cody
+from overlay.query_parse import parse_hey_cody
 
 logger = logging.getLogger(__name__)
 
@@ -563,12 +563,8 @@ class CodyApp:
         logger.info("heard: %s", transcript)
         phrase = parse_hey_cody(transcript)
         if phrase is None:
-            low = transcript.casefold()
-            if "where" in low and ("my " in low or "the " in low):
-                phrase = extract_search_phrase(transcript)
-            else:
-                self._set_status(f'Heard "{transcript[:48]}" — say Hey Cody, where\'s my …')
-                return
+            self._set_status(f'Heard "{transcript[:48]}" — say Hey Cody, where\'s my …')
+            return
         if phrase == "":
             self._record_followup_query()
             return
