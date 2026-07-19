@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ctypes
 import logging
+import math
 import os
 import sys
 import textwrap
@@ -18,7 +19,7 @@ _win_fonts = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
 if _win_fonts.is_dir():
     os.environ.setdefault("QT_QPA_FONTDIR", str(_win_fonts))
 
-from PySide6.QtCore import QPoint, QPointF, Qt, QTimer, QRectF, QAbstractNativeEventFilter
+from PySide6.QtCore import QPoint, QPointF, Qt, QTimer, QRectF, QAbstractNativeEventFilter, Signal
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QApplication, QWidget, QSystemTrayIcon, QMenu, QStyle
 
@@ -69,6 +70,8 @@ DAMP = 0.75
 
 
 class CodyFloat(QWidget):
+    heard = Signal(str)  # emitted from the wake-word listener thread
+
     def __init__(self) -> None:
         super().__init__(None)
         self.setWindowTitle("Cody")
@@ -91,6 +94,9 @@ class CodyFloat(QWidget):
         self._follow = True  # false while holding a pointing pose
         self._fade = 1.0
         self._linger = 0
+        self._listener = None
+
+        self.heard.connect(self._on_heard_main)
 
         self._timer = QTimer(self)
         self._timer.setInterval(16)
@@ -103,6 +109,7 @@ class CodyFloat(QWidget):
             self._pos = QPointF(g.center().x() - WIN_W / 2, g.center().y() - WIN_H / 2)
             self._target = QPointF(self._pos)
         self._place()
+        QTimer.singleShot(300, self._start_listener)
 
     def _place(self) -> None:
         self.move(int(self._pos.x()), int(self._pos.y()))
@@ -115,6 +122,8 @@ class CodyFloat(QWidget):
         ay = (self._target.y() - self._pos.y()) * SPRING
         self._vel = QPointF((self._vel.x() + ax) * DAMP, (self._vel.y() + ay) * DAMP)
         self._pos = QPointF(self._pos.x() + self._vel.x(), self._pos.y() + self._vel.y())
+        if self._busy:
+            self._wave_t += 0.35
         # Fade the reply bubble once it has lingered (skip while busy/pointing)
         if self._reply and not self._busy and not self._pointing:
             if self._linger > 0:
@@ -132,9 +141,26 @@ class CodyFloat(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self._paint_cursor(p)
-        text = self._reply or (self._status if self._busy else "")
-        if text:
-            self._paint_bubble(p, text)
+        if self._busy:
+            self._paint_wave(p)
+        elif self._reply:
+            self._paint_bubble(p, self._reply)
+
+    def _paint_wave(self, p: QPainter) -> None:
+        """Animated voice bars while listening/thinking — like a mic waveform."""
+        bars = 22
+        gap = 6.0
+        x0 = ARROW.x() + 34
+        cy = ARROW.y() + 10
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(232, 240, 254, 235))
+        for i in range(bars):
+            # Two out-of-phase sines + envelope taper toward the ends
+            env = math.sin(math.pi * (i + 1) / (bars + 1))
+            wobble = math.sin(self._wave_t + i * 0.7) * 0.6 + math.sin(self._wave_t * 1.7 + i * 0.3) * 0.4
+            h = 4 + env * (6 + 20 * abs(wobble))
+            x = x0 + i * gap
+            p.drawRoundedRect(QRectF(x, cy - h / 2, 2.4, h), 1.2, 1.2)
 
     def _paint_bubble(self, p: QPainter, text: str) -> None:
         p.setFont(_ui_font(9))
@@ -172,13 +198,9 @@ class CodyFloat(QWidget):
         scale = 40 / 48
         p.scale(scale, scale)
         path = QPainterPath()
-        path.moveTo(6, 4)
-        path.lineTo(6, 36)
-        path.lineTo(14.5, 28.5)
-        path.lineTo(20, 42)
-        path.lineTo(26, 39.5)
-        path.lineTo(20.5, 26)
-        path.lineTo(32, 26)
+        path.moveTo(12, 3)
+        path.lineTo(23, 24)
+        path.lineTo(1, 24)
         path.closeSubpath()
         glow = 90 if self._busy or self._pointing else 55
         for r, a in ((6, glow // 2), (3, glow)):
@@ -210,6 +232,7 @@ class CodyFloat(QWidget):
             if creds.source == "none" or not creds.api_key:
                 self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
                 return
+            self._pause_listener()  # free the mic for the PTT clip
             wav = record_clip(CLIP_SECONDS)
             text = transcribe(wav, creds.api_key)
             if not text.strip():
@@ -220,6 +243,62 @@ class CodyFloat(QWidget):
         except Exception:
             logger.exception("capture failed")
             self._finish_msg("Something went wrong.", speak=False)
+        finally:
+            QTimer.singleShot(0, self._start_listener)  # resume wake word
+
+    # ---- wake word ("Hey Cody") ----------------------------------------
+
+    def _start_listener(self) -> None:
+        if self._listener is not None:
+            return
+        try:
+            from overlay.listen import HeyCodyListener, listen_available
+
+            ok, _ = listen_available()
+            if not ok:
+                return
+            self._listener = HeyCodyListener(lambda t: self.heard.emit(t))
+            self._listener.start()
+            logger.info("Hey Cody wake word listening")
+        except Exception:
+            logger.exception("wake listener start failed")
+
+    def _pause_listener(self) -> None:
+        if self._listener is not None:
+            try:
+                self._listener.stop()
+            except Exception:
+                pass
+            self._listener = None
+
+    def _on_heard_main(self, transcript: str) -> None:
+        # Runs on the GUI thread (queued signal). Ignore while already working.
+        if self._busy:
+            return
+        from overlay.query_parse import WAKE_RE
+
+        m = WAKE_RE.search(transcript or "")
+        if not m:
+            return  # no "Hey Cody" — ignore ambient speech
+        rest = (m.group(1) or "").strip(" .,!?")
+        if not rest:
+            self.trigger_ptt()  # wake word only → record a follow-up
+        else:
+            self._run_query(rest)  # natural question straight to the brain
+
+    def _run_query(self, text: str) -> None:
+        if self._busy:
+            return
+        from overlay.auth import resolve_openai
+
+        creds = resolve_openai()
+        if creds.source == "none" or not creds.api_key:
+            self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
+            return
+        self._busy = True
+        self._reply = ""
+        self._set_ui(f"“{text[:40]}”…", pointing=False)
+        threading.Thread(target=self._query_worker, args=(text, creds.api_key), daemon=True).start()
 
     def _query_worker(self, text: str, api_key: str) -> None:
         try:
