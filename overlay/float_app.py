@@ -65,6 +65,7 @@ WIN_W, WIN_H = 300, 120
 # Cody arrow tracks lower-right of OS cursor
 SLOT = QPoint(6, 8)
 ARROW = QPointF(10, 10)  # arrow tip origin inside the window
+TIP = QPointF(20, 12.5)  # triangle tip in window coords (ARROW + scale*(12,3))
 SPRING = 0.22
 DAMP = 0.75
 
@@ -94,6 +95,8 @@ class CodyFloat(QWidget):
         self._follow = True  # false while holding a pointing pose
         self._fade = 1.0
         self._linger = 0
+        self._wave_t = 0.0
+        self._wave_level = 0.0  # live mic amplitude (0..1) while recording
         self._listener = None
 
         self.heard.connect(self._on_heard_main)
@@ -124,6 +127,8 @@ class CodyFloat(QWidget):
         self._pos = QPointF(self._pos.x() + self._vel.x(), self._pos.y() + self._vel.y())
         if self._busy:
             self._wave_t += 0.35
+        # Decay the live mic level so bars fall when you stop talking / while thinking
+        self._wave_level *= 0.82
         # Fade the reply bubble once it has lingered (skip while busy/pointing)
         if self._reply and not self._busy and not self._pointing:
             if self._linger > 0:
@@ -155,10 +160,12 @@ class CodyFloat(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(232, 240, 254, 235))
         for i in range(bars):
-            # Two out-of-phase sines + envelope taper toward the ends
+            # Envelope taper toward the ends; small shimmer so idle isn't dead-flat
             env = math.sin(math.pi * (i + 1) / (bars + 1))
-            wobble = math.sin(self._wave_t + i * 0.7) * 0.6 + math.sin(self._wave_t * 1.7 + i * 0.3) * 0.4
-            h = 4 + env * (6 + 20 * abs(wobble))
+            shimmer = math.sin(self._wave_t + i * 0.7) * 0.5 + 0.5  # 0..1
+            # Height driven by real mic level; shimmer only modulates it
+            amp = self._wave_level * (0.55 + 0.45 * shimmer)
+            h = 3 + env * (3 + 34 * amp)
             x = x0 + i * gap
             p.drawRoundedRect(QRectF(x, cy - h / 2, 2.4, h), 1.2, 1.2)
 
@@ -197,13 +204,17 @@ class CodyFloat(QWidget):
         p.translate(ARROW.x(), ARROW.y())
         scale = 40 / 48
         p.scale(scale, scale)
+        # Tilt like a mouse pointer — tip stays anchored, body swings down-right
+        p.translate(12, 3)
+        p.rotate(-38)
+        p.translate(-12, -3)
         path = QPainterPath()
         path.moveTo(12, 3)
         path.lineTo(23, 24)
         path.lineTo(1, 24)
         path.closeSubpath()
-        glow = 90 if self._busy or self._pointing else 55
-        for r, a in ((6, glow // 2), (3, glow)):
+        glow = 150 if self._busy or self._pointing else 95
+        for r, a in ((11, glow // 3), (7, glow // 2), (3, glow)):
             p.setPen(QPen(QColor(27, 79, 216, a), r))
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawPath(path)
@@ -226,14 +237,14 @@ class CodyFloat(QWidget):
     def _capture_worker(self) -> None:
         try:
             from overlay.auth import resolve_openai
-            from overlay.stt import record_clip, transcribe
+            from overlay.stt import record_clip_metered, transcribe
 
             creds = resolve_openai()
             if creds.source == "none" or not creds.api_key:
                 self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
                 return
             self._pause_listener()  # free the mic for the PTT clip
-            wav = record_clip(CLIP_SECONDS)
+            wav = record_clip_metered(CLIP_SECONDS, on_level=self._set_wave_level)
             text = transcribe(wav, creds.api_key)
             if not text.strip():
                 self._finish_msg("Didn't catch that.", speak=False)
@@ -300,6 +311,10 @@ class CodyFloat(QWidget):
         self._set_ui(f"“{text[:40]}”…", pointing=False)
         threading.Thread(target=self._query_worker, args=(text, creds.api_key), daemon=True).start()
 
+    def _set_wave_level(self, level: float) -> None:
+        # Called from the recording thread; float write is atomic under the GIL.
+        self._wave_level = max(self._wave_level, float(level))
+
     def _query_worker(self, text: str, api_key: str) -> None:
         try:
             from overlay.input_router import default_deps, handle_query
@@ -324,8 +339,14 @@ class CodyFloat(QWidget):
             if point is not None:
                 self._pointing = True
                 self._follow = False
+                # `point` is physical px (mss). SetCursorPos wants physical, but
+                # the window .move() is logical px — reading the cursor back after
+                # moving gives the logical position, dodging DPI-scale mismatch
+                # that otherwise flings the buddy off-screen.
                 _set_cursor_pos(point[0], point[1])
-                self._target = QPointF(point[0] + SLOT.x(), point[1] + SLOT.y())
+                cur = QCursor.pos()
+                # Pointing: land the triangle TIP on the target, not beside it.
+                self._target = QPointF(cur.x() - TIP.x(), cur.y() - TIP.y())
                 QTimer.singleShot(HOLD_MS, self._resume_follow)
             else:
                 self._pointing = False
