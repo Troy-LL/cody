@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
-from overlay import brain, pointer_resolve, screenshot, scene
-from overlay.grid import annotate, default_grid, legend_text
+from overlay import brain, pointer_resolve, refine, screenshot, scene
+from overlay.grid import annotate, cell_center, default_grid, legend_text
 from overlay.scene import format_scene
 @dataclass
 class ScreenStep:
@@ -28,6 +28,7 @@ class Deps:
     ask: Callable  # (question, shot) -> Answer
     boxes_for: Callable  # (shot) -> list
     resolve: Callable  # (target, coords, boxes, shot) -> (x,y)|None
+    refine_point: Callable | None = None  # (question, shot, rough_xy, target) -> image xy|None
 
 
 def _resolve_steps(answer, boxes, shot, resolve, *, uia=None, cell=None, grid_spec=None) -> list[ScreenStep]:
@@ -81,9 +82,21 @@ def handle_query(question: str, deps: Deps) -> Outcome:
             [],
         )
 
+    boxes = deps.boxes_for(shot) if (answer.steps or answer.target or answer.coords) else []
+    if (
+        deps.refine_point
+        and refine.should_refine(answer, question, boxes, shot, els, spec)
+    ):
+        rough = answer.coords
+        if rough is None and answer.cell:
+            rough = cell_center(spec, answer.cell)
+        if rough is not None:
+            refined = deps.refine_point(question, shot, rough, answer.target)
+            if refined is not None:
+                answer.coords = refined
+
     steps: list[ScreenStep] = []
     if answer.steps or answer.target or answer.coords:
-        boxes = deps.boxes_for(shot)
         steps = _resolve_steps(
             answer,
             boxes,
@@ -104,4 +117,5 @@ def default_deps(api_key: str) -> Deps:
         ask=lambda q, s, **kw: brain.ask(q, s, api_key, **kw),
         boxes_for=pointer_resolve.boxes_for,
         resolve=pointer_resolve.resolve,
+        refine_point=lambda q, s, xy, t: refine.refine_point(q, s, api_key, xy, t),
     )
