@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from overlay import brain, pointer_resolve, screenshot, scene
+from overlay.grid import annotate, default_grid, legend_text
+from overlay.scene import format_scene
 @dataclass
 class ScreenStep:
     label: str
@@ -52,8 +54,22 @@ def handle_query(question: str, deps: Deps) -> Outcome:
     if not question.strip():
         return Outcome("Didn't catch that.", None)
     shot = deps.capture()
+    els = scene.collect_scene()
+    if shot.image is not None:
+        w, h = shot.image.size
+        spec = default_grid(w, h)
+        annotated = annotate(shot.image, spec)
+    else:
+        spec = default_grid(1, 1)
+        annotated = None
     try:
-        answer = deps.ask(question, shot)
+        answer = deps.ask(
+            question,
+            shot,
+            scene_text=format_scene(els),
+            grid_legend=legend_text(spec),
+            annotated_image=annotated,
+        )
     except Exception:
         return Outcome("I couldn't reach the model.", None)
 
@@ -68,8 +84,15 @@ def handle_query(question: str, deps: Deps) -> Outcome:
     steps: list[ScreenStep] = []
     if answer.steps or answer.target or answer.coords:
         boxes = deps.boxes_for(shot)
-        uia = scene.collect_scene()
-        steps = _resolve_steps(answer, boxes, shot, deps.resolve, uia=uia)
+        steps = _resolve_steps(
+            answer,
+            boxes,
+            shot,
+            deps.resolve,
+            uia=els,
+            cell=answer.cell,
+            grid_spec=spec,
+        )
 
     point = steps[0].point if steps else None
     return Outcome(answer.reply_text or "", point, answer.reveal_path, steps)
@@ -78,7 +101,7 @@ def handle_query(question: str, deps: Deps) -> Outcome:
 def default_deps(api_key: str) -> Deps:
     return Deps(
         capture=screenshot.capture,
-        ask=lambda q, s: brain.ask(q, s, api_key),
+        ask=lambda q, s, **kw: brain.ask(q, s, api_key, **kw),
         boxes_for=pointer_resolve.boxes_for,
         resolve=pointer_resolve.resolve,
     )

@@ -8,7 +8,7 @@ def _deps(answer, point):
     shot = Shot(image=None, scale=1.0, origin=(0, 0))
     return Deps(
         capture=lambda: shot,
-        ask=lambda q, s: answer,
+        ask=lambda q, s, **kw: answer,
         boxes_for=lambda s: [],
         resolve=lambda target, coords, boxes, s, **kw: point,
     )
@@ -36,7 +36,7 @@ def test_empty_question_short_circuits():
 def test_ask_failure_returns_graceful_message():
     shot = Shot(image=None, scale=1.0, origin=(0, 0))
 
-    def _raise(_q, _s):
+    def _raise(_q, _s, **_kw):
         raise RuntimeError("network down")
 
     deps = Deps(
@@ -78,7 +78,7 @@ def test_guide_resolves_multiple_steps():
 
     deps = Deps(
         capture=lambda: shot,
-        ask=lambda q, s: answer,
+        ask=lambda q, s, **kw: answer,
         boxes_for=lambda s: [],
         resolve=resolve,
     )
@@ -86,6 +86,46 @@ def test_guide_resolves_multiple_steps():
     assert out.point == (100, 50)
     assert len(out.steps) == 2
     assert out.steps[1].say == "Then Settings"
+
+
+def test_handle_query_wires_scene_grid_to_ask_and_resolve(monkeypatch):
+    from PIL import Image
+
+    from overlay.grid import GridSpec
+
+    img = Image.new("RGB", (200, 100), color=(0, 0, 0))
+    shot = Shot(image=img, scale=1.0, origin=(0, 0))
+    fake_els = [SceneEl("Chrome", "Button", (10, 10, 20, 20))]
+    fake_spec = GridSpec(cols=8, rows=4, img_w=200, img_h=100)
+    monkeypatch.setattr("overlay.input_router.scene.collect_scene", lambda: fake_els)
+    monkeypatch.setattr("overlay.input_router.default_grid", lambda w, h: fake_spec)
+    monkeypatch.setattr("overlay.input_router.annotate", lambda image, spec: image)
+    ask_kw: list[dict] = []
+    seen: list[dict] = []
+
+    def ask(q, s, **kw):
+        ask_kw.append(kw)
+        return Answer("Here.", target="Chrome", coords=(1, 2), cell="B3")
+
+    def resolve(target, coords, boxes, s, **kw):
+        seen.append(kw)
+        return (50, 60)
+
+    deps = Deps(
+        capture=lambda: shot,
+        ask=ask,
+        boxes_for=lambda s: [],
+        resolve=resolve,
+    )
+    out = handle_query("where is chrome", deps)
+    assert out.point == (50, 60)
+    assert ask_kw[0]["scene_text"]
+    assert "Chrome" in ask_kw[0]["scene_text"]
+    assert ask_kw[0]["grid_legend"]
+    assert ask_kw[0]["annotated_image"] is img
+    assert seen[0]["uia"] == fake_els
+    assert seen[0]["cell"] == "B3"
+    assert seen[0]["grid_spec"] == fake_spec
 
 
 def test_handle_query_passes_uia_to_resolve(monkeypatch):
@@ -100,7 +140,7 @@ def test_handle_query_passes_uia_to_resolve(monkeypatch):
 
     deps = Deps(
         capture=lambda: shot,
-        ask=lambda q, s: Answer("Here.", target="Chrome", coords=(1, 2)),
+        ask=lambda q, s, **kw: Answer("Here.", target="Chrome", coords=(1, 2)),
         boxes_for=lambda s: [],
         resolve=resolve,
     )

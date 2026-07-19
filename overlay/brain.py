@@ -20,6 +20,10 @@ SYSTEM = (
     "- If it is missing, hidden, or you are unsure: set found=false. Do NOT invent "
     "coordinates. Do NOT point at the taskbar, empty space, or a random control. "
     "Say you don't see it and tell the user what to open or where to look first.\n"
+    "- When a scene list is provided, prefer matching by name when it clearly "
+    "corresponds to a visible control.\n"
+    "- When a grid is overlaid, you may return a cell (e.g. B7) plus optional fine "
+    "x,y in image pixels when that helps.\n"
     "- x,y are screenshot image pixels (top-left origin) when found=true.\n"
     "- target names the element: visible text, or icon identity by appearance "
     "(logos/shapes/colors) when there is no text.\n"
@@ -53,6 +57,10 @@ TOOLS = [
                         "type": "string",
                         "description": "Visible text, or icon identity",
                     },
+                    "cell": {
+                        "type": "string",
+                        "description": "Grid cell label when grid is shown (e.g. B7)",
+                    },
                     "x": {"type": "number", "description": "X in screenshot image pixels"},
                     "y": {"type": "number", "description": "Y in screenshot image pixels"},
                 },
@@ -82,6 +90,10 @@ TOOLS = [
                             "type": "object",
                             "properties": {
                                 "target": {"type": "string"},
+                                "cell": {
+                                    "type": "string",
+                                    "description": "Grid cell for this step (e.g. B7)",
+                                },
                                 "x": {"type": "number"},
                                 "y": {"type": "number"},
                                 "say": {
@@ -91,6 +103,10 @@ TOOLS = [
                             },
                             "required": ["target", "x", "y"],
                         },
+                    },
+                    "cell": {
+                        "type": "string",
+                        "description": "Grid cell for the first step when helpful",
                     },
                 },
                 "required": ["found"],
@@ -127,6 +143,7 @@ class Answer:
     reveal_path: str | None = None
     found: bool = True
     steps: list[GuideStep] = field(default_factory=list)
+    cell: str | None = None
 
 
 def _truthy_found(value) -> bool:
@@ -153,6 +170,8 @@ def parse_tool_calls(message) -> Answer:
                 continue
             ans.found = True
             ans.target = args.get("target")
+            if cell := args.get("cell"):
+                ans.cell = str(cell)
             if "x" in args and "y" in args:
                 ans.coords = (float(args["x"]), float(args["y"]))
             else:
@@ -185,6 +204,13 @@ def parse_tool_calls(message) -> Answer:
             ans.steps = steps
             ans.target = steps[0].label
             ans.coords = steps[0].coords
+            if cell := args.get("cell"):
+                ans.cell = str(cell)
+            else:
+                for raw in args.get("steps") or []:
+                    if isinstance(raw, dict) and raw.get("cell"):
+                        ans.cell = str(raw["cell"])
+                        break
         elif name == "reveal":
             ans.reveal_path = args.get("path")
     if not ans.reply_text and (getattr(message, "tool_calls", None) or []):
@@ -201,41 +227,59 @@ def parse_tool_calls(message) -> Answer:
     return ans
 
 
-def _data_url(shot: Shot) -> str:
+def _data_url(image) -> str:
     buf = io.BytesIO()
-    shot.image.save(buf, format="PNG")
+    image.save(buf, format="PNG")
     b64 = base64.b64encode(buf.getvalue()).decode()
     return f"data:image/png;base64,{b64}"
 
 
-def _user_text(question: str, shot: Shot) -> str:
+def _user_text(
+    question: str,
+    shot: Shot,
+    *,
+    scene_text: str = "",
+    grid_legend: str = "",
+) -> str:
+    parts = [question.strip()]
+    if scene_text.strip():
+        parts.append(scene_text.strip())
+    if grid_legend.strip():
+        parts.append(grid_legend.strip())
     if shot.image is None:
-        return question
+        return "\n\n".join(parts)
     w, h = shot.image.size
-    return (
-        f"{question.strip()}\n\n"
+    parts.append(
         f"Screenshot size: {w}x{h} pixels (top-left origin). "
         f"If found=true, x must be 0..{w - 1} and y must be 0..{h - 1} in THIS image. "
         f"If the thing is not clearly visible, found=false — do not guess."
     )
+    return "\n\n".join(parts)
 
 
-def ask(question: str, shot: Shot, api_key: str, model: str = "gpt-4o") -> Answer:
+def ask(
+    question: str,
+    shot: Shot,
+    api_key: str,
+    *,
+    scene_text: str = "",
+    grid_legend: str = "",
+    annotated_image=None,
+    model: str = "gpt-4o",
+) -> Answer:
     from openai import OpenAI
 
+    image = annotated_image if annotated_image is not None else shot.image
     client = OpenAI(api_key=api_key)
+    content = [{"type": "text", "text": _user_text(question, shot, scene_text=scene_text, grid_legend=grid_legend)}]
+    if image is not None:
+        content.append({"type": "image_url", "image_url": {"url": _data_url(image)}})
     resp = client.chat.completions.create(
         model=model,
         tools=TOOLS,
         messages=[
             {"role": "system", "content": SYSTEM},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": _user_text(question, shot)},
-                    {"type": "image_url", "image_url": {"url": _data_url(shot)}},
-                ],
-            },
+            {"role": "user", "content": content},
         ],
     )
     return parse_tool_calls(resp.choices[0].message)

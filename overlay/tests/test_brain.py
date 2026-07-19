@@ -9,6 +9,14 @@ def _msg(content, tools):
     return SimpleNamespace(content=content, tool_calls=calls or None)
 
 
+def test_parse_point_cell():
+    ans = parse_tool_calls(
+        _msg("Here.", [("point", {"found": True, "target": "Chrome", "cell": "B7", "x": 100, "y": 200})])
+    )
+    assert ans.cell == "B7"
+    assert ans.coords == (100.0, 200.0)
+
+
 def test_parse_point_target():
     ans = parse_tool_calls(
         _msg("Here is Save.", [("point", {"found": True, "target": "Save", "x": 12, "y": 34})])
@@ -72,6 +80,25 @@ def test_parse_guide_steps():
     assert len(ans.steps) == 2
     assert ans.steps[0].say == "Click File"
     assert ans.coords == (40.0, 12.0)
+
+
+def test_user_text_includes_scene_and_grid():
+    from PIL import Image
+
+    from overlay.brain import _user_text
+    from overlay.screenshot import Shot
+
+    img = Image.new("RGB", (1280, 720), color=(0, 0, 0))
+    shot = Shot(image=img, scale=1.0, origin=(0, 0))
+    text = _user_text(
+        "where's gmail",
+        shot,
+        scene_text='Scene:\n- "Chrome" Button',
+        grid_legend="Grid A1…H12",
+    )
+    assert "Chrome" in text
+    assert "Grid A1" in text
+    assert "1280x720" in text
 
 
 def test_user_text_includes_image_dimensions():
