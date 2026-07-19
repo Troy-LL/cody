@@ -1,0 +1,14 @@
+{
+  "name": "confetti-club-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scripted host+players walkthrough of Confetti Club for video recording.",
+  "scripts": {
+    "demo": "node record-demo.mjs",
+    "demo:headless": "HEADLESS=1 node record-demo.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "25.3.0"
+  }
+}
