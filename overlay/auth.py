@@ -24,18 +24,22 @@ def _read_json(path: Path) -> dict:
         return {}
 
 
+def _clean(value) -> str:
+    """Stringify a JSON value, treating null / "none" / "null" as empty."""
+    if value is None:
+        return ""
+    text = str(value).strip()
+    return "" if text.lower() in ("none", "null") else text
+
+
 def _codex_key(path: Path) -> str | None:
     # ponytail: best-effort parse of ~/.codex/auth.json; format not a stable contract.
+    # Only accept a real API key (sk-...). A ChatGPT-subscription OAuth access_token
+    # does NOT authenticate the standard OpenAI API, so we don't return it.
     data = _read_json(path)
     for key in ("OPENAI_API_KEY", "openai_api_key", "api_key"):
-        val = str(data.get(key, "")).strip()
-        if val:
-            return val
-    # Nested {"tokens": {"access_token": ...}} shape (ChatGPT-subscription OAuth).
-    tokens = data.get("tokens")
-    if isinstance(tokens, dict):
-        val = str(tokens.get("access_token", "")).strip()
-        if val:
+        val = _clean(data.get(key))
+        if val.startswith("sk-"):
             return val
     return None
 
@@ -49,11 +53,11 @@ def resolve_openai(
     cfg = config_path if config_path is not None else DEFAULT_CONFIG
     cdx = codex_path if codex_path is not None else DEFAULT_CODEX
 
-    cfg_key = str(_read_json(cfg).get("openai_api_key", "")).strip() if cfg.is_file() else ""
+    cfg_key = _clean(_read_json(cfg).get("openai_api_key")) if cfg.is_file() else ""
     if cfg_key:
         return Credentials(cfg_key, "config")
 
-    env_key = str(env.get("OPENAI_API_KEY", "")).strip()
+    env_key = _clean(env.get("OPENAI_API_KEY"))
     if env_key:
         return Credentials(env_key, "env")
 

@@ -1,5 +1,5 @@
-"""python -m overlay → Tkinter Cody lens on your desktop."""
+"""python -m overlay → floating clicky-style Cody companion on your desktop."""
 
-from overlay.tk_lens import main
+from overlay.float_app import main
 
 raise SystemExit(main())
