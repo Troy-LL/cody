@@ -54,33 +54,41 @@ def _score(want: str, want_tokens: list[str], text: str) -> float:
     return 0.0
 
 
-def _match(target: str, boxes: list):
+def _match(target: str, boxes: list, near: tuple[int, int] | None = None):
+    """Best OCR box for the label. When `near` (the model's screen coords) is
+    given and several boxes match comparably well, pick the one closest to it —
+    this disambiguates repeated text (two "Cursor Settings") using the model's
+    spatial hint, so pointing is vision-guided, not OCR-alone.
+    """
     want = _norm(target)
     if not want:
         return None
     want_tokens = _tokens(target)
-    best = None
-    best_score = 0.0
+    scored = []
     for b in boxes:
         s = _score(want, want_tokens, b.text)
-        # Tie-break: prefer the shorter line (tighter around the actual label).
-        if s > best_score or (
-            s == best_score and s > 0 and best is not None and len(b.text) < len(best.text)
-        ):
-            best, best_score = b, s
-    if best is None or best_score < _MIN_SCORE:
+        if s >= _MIN_SCORE:
+            scored.append((s, b))
+    if not scored:
         return None
-    return best
+    top = max(s for s, _ in scored)
+    # Candidates within a small band of the best score are considered ties.
+    ties = [b for s, b in scored if s >= top - 0.1]
+    if near is not None and len(ties) > 1:
+        nx, ny = near
+        return min(ties, key=lambda b: (b.center[0] - nx) ** 2 + (b.center[1] - ny) ** 2)
+    # No hint (or a single winner): shortest line = tightest around the label.
+    return min(ties, key=lambda b: len(b.text))
 
 
 def resolve(target, coords, boxes, shot: Shot):
+    # Model coords come in image pixels; map to screen once, up front.
+    near = clamp_screen(*to_screen(shot, coords[0], coords[1])) if coords is not None else None
     if target:
-        box = _match(target, boxes)
+        box = _match(target, boxes, near=near)
         if box is not None:
-            return clamp_screen(*box.center)
-    if coords is not None:
-        return clamp_screen(*to_screen(shot, coords[0], coords[1]))
-    return None
+            return clamp_screen(*box.center)  # OCR = pixel-exact for text
+    return near  # no text match → model coords (icons) or None
 
 
 def boxes_for(shot: Shot) -> list[OcrBox]:

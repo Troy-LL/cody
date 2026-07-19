@@ -66,6 +66,21 @@ def test_no_match_falls_back_to_coords():
     assert resolve("gmail", coords=(10, 10), boxes=boxes, shot=shot) == (10, 10)
 
 
+def test_model_coords_disambiguate_repeated_text():
+    # Two identical "Cursor Settings" hits; the model's coords pick the near one.
+    boxes = [FakeBox("Cursor Settings", (800, 129)), FakeBox("Cursor Settings", (900, 900))]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("cursor settings", coords=(880, 890), boxes=boxes, shot=shot) == (900, 900)
+    assert resolve("cursor settings", coords=(790, 120), boxes=boxes, shot=shot) == (800, 129)
+
+
+def test_ocr_pixels_win_over_model_coords_when_matched():
+    # Even with model coords present, a text match returns the OCR pixel center.
+    boxes = [FakeBox("Save", (500, 300))]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("save", coords=(480, 290), boxes=boxes, shot=shot) == (500, 300)
+
+
 def test_boxes_for_maps_ocr_to_screen_centers(monkeypatch):
     def fake_ocr(_img):
         return [("Save", 100, 40, 20, 10)]

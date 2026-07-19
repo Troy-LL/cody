@@ -14,8 +14,11 @@ logger = logging.getLogger("cody.brain")
 SYSTEM = (
     "You are Cody, a friendly on-screen helper. You see the user's screen and hear "
     "their question. Answer briefly and conversationally in one or two sentences. "
-    "When the user asks where something is, call point() with the on-screen text of "
-    "the element as `target` (and your best-guess x,y in image pixels as a fallback). "
+    "When the user asks where something is, call point(): set `target` to the exact "
+    "visible text on/next to the element (copy it verbatim, including case), and set "
+    "x,y to the CENTER of that element in pixels of the image you were given "
+    "(0,0 = top-left). Always give x,y — they disambiguate which match the user "
+    "means and locate icons that have no text. "
     "Call reveal() only when they clearly ask to open a file. Otherwise just reply."
 )
 
@@ -28,11 +31,11 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "target": {"type": "string", "description": "Visible text/label of the element"},
-                    "x": {"type": "number"},
-                    "y": {"type": "number"},
+                    "target": {"type": "string", "description": "Exact visible text on/next to the element"},
+                    "x": {"type": "number", "description": "Element center X in image pixels"},
+                    "y": {"type": "number", "description": "Element center Y in image pixels"},
                 },
-                "required": ["target"],
+                "required": ["target", "x", "y"],
             },
         },
     },
