@@ -233,8 +233,11 @@ class CodyApp:
         focus = self.panel.focus_get()
         return focus in (self.key_entry, self.openai_key_entry)
 
-    def _on_space(self, _event: tk.Event) -> None:
+    def _on_space(self, event: tk.Event) -> None:
         if self._typing_focus():
+            return
+        # Leave Ctrl/Shift/Alt+Space for the Win32 PTT hotkey.
+        if event.state & (0x0001 | 0x0004 | 0x0008):
             return
         self._scan()
 
@@ -311,7 +314,6 @@ class CodyApp:
     def _start_ptt_capture(self) -> None:
         if self.busy:
             return
-        self.busy = True
 
         def work() -> None:
             try:
@@ -327,7 +329,7 @@ class CodyApp:
                 if not text.strip():
                     self.root.after(0, lambda: self._query_empty("Didn't catch that."))
                     return
-                self._run_query_worker(text)
+                self.root.after(0, lambda t=text: self._run_query(t))
             except Exception:
                 logger.exception("PTT capture failed")
                 self.root.after(0, self._query_failed)
@@ -337,7 +339,6 @@ class CodyApp:
     def _record_followup_query(self) -> None:
         if self.busy:
             return
-        self.busy = True
         self._set_status("Hey Cody — go ahead…")
 
         def work() -> None:
@@ -354,7 +355,7 @@ class CodyApp:
                 if not text.strip():
                     self.root.after(0, lambda: self._query_empty("Didn't catch that."))
                     return
-                self._run_query_worker(text)
+                self.root.after(0, lambda t=text: self._run_query(t))
             except Exception:
                 logger.exception("follow-up capture failed")
                 self.root.after(0, self._query_failed)
@@ -409,16 +410,15 @@ class CodyApp:
         reply = (outcome.reply_text or "").strip()
         if reply:
             self._set_status(reply[:120])
+            self._show_bubble(reply, True)
 
             def tts_work() -> None:
                 try:
                     from voice.speak import speak_text
 
-                    ok = speak_text(reply, language_mode="en")
+                    speak_text(reply, language_mode="en")
                 except Exception:
                     logger.exception("speak_text failed")
-                    ok = False
-                self.root.after(0, lambda: self._show_bubble(reply, ok))
 
             threading.Thread(target=tts_work, daemon=True).start()
         if outcome.point is not None:
