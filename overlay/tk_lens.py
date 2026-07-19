@@ -421,7 +421,10 @@ class CodyApp:
                     logger.exception("speak_text failed")
 
             threading.Thread(target=tts_work, daemon=True).start()
-        if outcome.point is not None:
+        steps = list(getattr(outcome, "steps", None) or [])
+        if steps:
+            self._fly_guide(steps)
+        elif outcome.point is not None:
             self._fly_to(outcome.point[0], outcome.point[1])
         if outcome.reveal_path:
             try:
@@ -702,6 +705,26 @@ class CodyApp:
             self.dest.withdraw()
         except Exception:
             pass
+
+    def _fly_guide(self, steps: list) -> None:
+        """Fly through multi-step guide points with short spoken tips."""
+        queue = list(steps)
+
+        def next_step(i: int = 0) -> None:
+            if i >= len(queue):
+                return
+            s = queue[i]
+            tip = (getattr(s, "say", None) or "").strip()
+            if tip and i > 0:
+                self._set_status(tip[:120])
+                self._show_bubble(tip, True)
+                self._speak_message(tip)
+            self._fly_to(s.point[0], s.point[1])
+            if i + 1 < len(queue):
+                # After hold, advance (HOLD_MS matches _fly_to's resume timer).
+                self.root.after(HOLD_MS + FLY_MS + 200, lambda: next_step(i + 1))
+
+        next_step(0)
 
     def _fly_to(self, tx: int, ty: int) -> None:
         self._cancel_hold()

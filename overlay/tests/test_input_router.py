@@ -1,5 +1,5 @@
-from overlay.input_router import handle_query, Deps
-from overlay.brain import Answer
+from overlay.brain import Answer, GuideStep
+from overlay.input_router import Deps, handle_query
 from overlay.screenshot import Shot
 
 
@@ -14,8 +14,12 @@ def _deps(answer, point):
 
 
 def test_query_with_point():
-    out = handle_query("where is save", _deps(Answer("Here.", target="Save"), (500, 300)))
+    out = handle_query(
+        "where is save",
+        _deps(Answer("Here.", target="Save", coords=(1, 2)), (500, 300)),
+    )
     assert out.reply_text == "Here." and out.point == (500, 300)
+    assert len(out.steps) == 1
 
 
 def test_query_text_only():
@@ -42,3 +46,42 @@ def test_ask_failure_returns_graceful_message():
     )
     out = handle_query("hello", deps)
     assert out.reply_text == "I couldn't reach the model." and out.point is None
+
+
+def test_not_found_does_not_point():
+    out = handle_query(
+        "where's spotify",
+        _deps(
+            Answer("I don't see Spotify.", found=False, target="Spotify", coords=(9, 9)),
+            (999, 999),
+        ),
+    )
+    assert out.point is None
+    assert out.steps == []
+    assert "don't see" in out.reply_text.lower() or out.reply_text
+
+
+def test_guide_resolves_multiple_steps():
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    answer = Answer(
+        "Two clicks.",
+        found=True,
+        steps=[
+            GuideStep("File", (10, 10), "Click File"),
+            GuideStep("Settings", (20, 20), "Then Settings"),
+        ],
+    )
+
+    def resolve(target, coords, boxes, s):
+        return {"File": (100, 50), "Settings": (120, 200)}[target]
+
+    deps = Deps(
+        capture=lambda: shot,
+        ask=lambda q, s: answer,
+        boxes_for=lambda s: [],
+        resolve=resolve,
+    )
+    out = handle_query("open settings", deps)
+    assert out.point == (100, 50)
+    assert len(out.steps) == 2
+    assert out.steps[1].say == "Then Settings"

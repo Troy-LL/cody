@@ -1,10 +1,15 @@
 """Single entry for PTT and wake-word queries: capture -> brain -> resolve."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 from overlay import brain, pointer_resolve, screenshot
+@dataclass
+class ScreenStep:
+    label: str
+    point: tuple[int, int]
+    say: str = ""
 
 
 @dataclass
@@ -12,14 +17,31 @@ class Outcome:
     reply_text: str
     point: tuple[int, int] | None
     reveal_path: str | None = None
+    steps: list[ScreenStep] = field(default_factory=list)
 
 
 @dataclass
 class Deps:
     capture: Callable
-    ask: Callable        # (question, shot) -> Answer
+    ask: Callable  # (question, shot) -> Answer
     boxes_for: Callable  # (shot) -> list
-    resolve: Callable    # (target, coords, boxes, shot) -> (x,y)|None
+    resolve: Callable  # (target, coords, boxes, shot) -> (x,y)|None
+
+
+def _resolve_steps(answer, boxes, shot, resolve) -> list[ScreenStep]:
+    if answer.steps:
+        out: list[ScreenStep] = []
+        for step in answer.steps:
+            pt = resolve(step.label, step.coords, boxes, shot)
+            if pt is None:
+                continue
+            out.append(ScreenStep(step.label, pt, step.say))
+        return out
+    if answer.target or answer.coords:
+        pt = resolve(answer.target, answer.coords, boxes, shot)
+        if pt is not None:
+            return [ScreenStep(answer.target or "here", pt, "")]
+    return []
 
 
 def handle_query(question: str, deps: Deps) -> Outcome:
@@ -30,11 +52,22 @@ def handle_query(question: str, deps: Deps) -> Outcome:
         answer = deps.ask(question, shot)
     except Exception:
         return Outcome("I couldn't reach the model.", None)
-    point = None
-    if answer.target or answer.coords:
+
+    if not answer.found:
+        return Outcome(
+            answer.reply_text or "I don't see that on this screen.",
+            None,
+            answer.reveal_path,
+            [],
+        )
+
+    steps: list[ScreenStep] = []
+    if answer.steps or answer.target or answer.coords:
         boxes = deps.boxes_for(shot)
-        point = deps.resolve(answer.target, answer.coords, boxes, shot)
-    return Outcome(answer.reply_text or "", point, answer.reveal_path)
+        steps = _resolve_steps(answer, boxes, shot, deps.resolve)
+
+    point = steps[0].point if steps else None
+    return Outcome(answer.reply_text or "", point, answer.reveal_path, steps)
 
 
 def default_deps(api_key: str) -> Deps:

@@ -30,6 +30,7 @@ logger = logging.getLogger("cody.float")
 
 CLIP_SECONDS = 4.0
 HOLD_MS = 2600  # keep the pointing pose after flying
+STEP_GAP_MS = 2800  # pause between multi-step guide points
 LINGER_TICKS = 220  # ~3.5s full-opacity before fading (16ms/tick)
 FADE_STEP = 0.04    # per-tick alpha decay once linger ends
 
@@ -54,11 +55,24 @@ def _ui_font(size: int = 9, bold: bool = False) -> QFont:
     return font
 
 
-def _set_cursor_pos(x: int, y: int) -> None:
+def _physical_to_logical(x: int, y: int) -> tuple[int, int]:
+    """mss / Win32 screen px → Qt logical px (per-monitor DPI)."""
     try:
-        ctypes.windll.user32.SetCursorPos(int(x), int(y))
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+        pt = POINT(int(x), int(y))
+        # hwnd=None → convert using the monitor that contains the point
+        if ctypes.windll.user32.PhysicalToLogicalPointForPerMonitorDPI(None, ctypes.byref(pt)):
+            return int(pt.x), int(pt.y)
     except Exception:
-        logger.debug("SetCursorPos failed", exc_info=True)
+        logger.debug("PhysicalToLogicalPointForPerMonitorDPI failed", exc_info=True)
+    try:
+        dpi = int(ctypes.windll.user32.GetDpiForSystem())
+        scale = dpi / 96.0 if dpi else 1.0
+        return int(x / scale), int(y / scale)
+    except Exception:
+        return int(x), int(y)
 
 
 WIN_W, WIN_H = 300, 120
@@ -327,35 +341,22 @@ class CodyFloat(QWidget):
 
     def _apply_outcome(self, outcome) -> None:
         reply = (outcome.reply_text or "").strip()
-        point = outcome.point
         reveal_path = outcome.reveal_path
+        steps = list(getattr(outcome, "steps", None) or [])
+        if not steps and outcome.point is not None:
+            from overlay.input_router import ScreenStep
 
-        def ui() -> None:
+            steps = [ScreenStep("", outcome.point, "")]
+
+        def ui_text_only() -> None:
             self._busy = False
             self._reply = reply
             self._fade = 1.0
             self._linger = LINGER_TICKS
             self._status = "Ctrl+Shift+Space to talk"
-            if point is not None:
-                self._pointing = True
-                self._follow = False
-                # `point` is physical px (mss). SetCursorPos wants physical, but
-                # the window .move() is logical px — reading the cursor back after
-                # moving gives the logical position, dodging DPI-scale mismatch
-                # that otherwise flings the buddy off-screen.
-                _set_cursor_pos(point[0], point[1])
-                cur = QCursor.pos()
-                # Pointing: land the triangle TIP on the target, not beside it.
-                self._target = QPointF(cur.x() - TIP.x(), cur.y() - TIP.y())
-                QTimer.singleShot(HOLD_MS, self._resume_follow)
-            else:
-                self._pointing = False
+            self._pointing = False
             self.update()
 
-        QTimer.singleShot(0, ui)
-
-        if reply:
-            self._speak(reply)
         if reveal_path:
             try:
                 from reveal.reveal import reveal
@@ -364,10 +365,56 @@ class CodyFloat(QWidget):
             except Exception:
                 logger.exception("reveal failed")
 
+        if not steps:
+            # Not found / text-only — speak the explanation, do not fling the buddy.
+            QTimer.singleShot(0, ui_text_only)
+            if reply:
+                self._speak(reply)
+            return
+
+        if reply:
+            self._speak(reply)
+        QTimer.singleShot(0, lambda: self._start_guide(steps, reply))
+
+    def _start_guide(self, steps, opener: str) -> None:
+        self._busy = False
+        self._status = "Ctrl+Shift+Space to talk"
+        self._guide_steps = list(steps)
+        self._guide_index = 0
+        self._show_guide_step(opener)
+
+    def _show_guide_step(self, opener: str = "") -> None:
+        steps = getattr(self, "_guide_steps", []) or []
+        idx = getattr(self, "_guide_index", 0)
+        if idx >= len(steps):
+            QTimer.singleShot(HOLD_MS, self._resume_follow)
+            return
+        step = steps[idx]
+        tip = (step.say or "").strip() or (step.label if len(steps) > 1 else "")
+        # First step keeps the opener reply in the bubble; later steps show the tip.
+        bubble = tip if (idx > 0 and tip) else (opener or tip or step.label)
+        self._reply = bubble
+        self._fade = 1.0
+        self._linger = LINGER_TICKS
+        self._pointing = True
+        self._follow = False
+        lx, ly = _physical_to_logical(step.point[0], step.point[1])
+        self._target = QPointF(lx - TIP.x(), ly - TIP.y())
+        self.update()
+        if idx > 0 and tip:
+            self._speak(tip)
+        self._guide_index = idx + 1
+        if self._guide_index < len(steps):
+            QTimer.singleShot(STEP_GAP_MS, lambda: self._show_guide_step(opener))
+        else:
+            QTimer.singleShot(HOLD_MS, self._resume_follow)
+
     def _resume_follow(self) -> None:
         self._pointing = False
         self._follow = True
         self._reply = ""
+        self._guide_steps = []
+        self._guide_index = 0
         self.update()
 
     def _finish_msg(self, msg: str, *, speak: bool) -> None:
