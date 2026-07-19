@@ -3,7 +3,6 @@ screen on Ctrl+Shift+Space, answers by voice, and points at what you ask for."""
 
 from __future__ import annotations
 
-import ctypes
 import logging
 import math
 import os
@@ -54,13 +53,6 @@ def _ui_font(size: int = 9, bold: bool = False) -> QFont:
     return font
 
 
-def _set_cursor_pos(x: int, y: int) -> None:
-    try:
-        ctypes.windll.user32.SetCursorPos(int(x), int(y))
-    except Exception:
-        logger.debug("SetCursorPos failed", exc_info=True)
-
-
 WIN_W, WIN_H = 300, 120
 # Cody arrow tracks lower-right of OS cursor
 SLOT = QPoint(6, 8)
@@ -92,6 +84,7 @@ class CodyFloat(QWidget):
         self._status = "Ctrl+Shift+Space to talk"
         self._reply = ""
         self._busy = False
+        self._thinking = False  # recording → False (waveform), model working → True (dots)
         self._follow = True  # false while holding a pointing pose
         self._fade = 1.0
         self._linger = 0
@@ -148,16 +141,19 @@ class CodyFloat(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self._paint_cursor(p)
         if self._busy:
-            self._paint_wave(p)
+            if self._thinking:
+                self._paint_thinking(p)
+            else:
+                self._paint_wave(p)
         elif self._reply:
             self._paint_bubble(p, self._reply)
 
     def _paint_wave(self, p: QPainter) -> None:
-        """Animated voice bars while listening/thinking — like a mic waveform."""
-        bars = 22
-        gap = 6.0
-        x0 = ARROW.x() + 34
-        cy = ARROW.y() + 10
+        """Small animated voice bars while recording — like a mic waveform."""
+        bars = 13
+        gap = 4.0
+        x0 = ARROW.x() + 32
+        cy = ARROW.y() + 8
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(QColor(232, 240, 254, 235))
         for i in range(bars):
@@ -166,9 +162,20 @@ class CodyFloat(QWidget):
             shimmer = math.sin(self._wave_t + i * 0.7) * 0.5 + 0.5  # 0..1
             # Height driven by real mic level; shimmer only modulates it
             amp = self._wave_level * (0.55 + 0.45 * shimmer)
-            h = 3 + env * (3 + 34 * amp)
+            h = 2 + env * (2 + 18 * amp)
             x = x0 + i * gap
-            p.drawRoundedRect(QRectF(x, cy - h / 2, 2.4, h), 1.2, 1.2)
+            p.drawRoundedRect(QRectF(x, cy - h / 2, 2.0, h), 1.0, 1.0)
+
+    def _paint_thinking(self, p: QPainter) -> None:
+        """Three pulsing dots while the model works — a 'thinking' indicator."""
+        cx = ARROW.x() + 36
+        cy = ARROW.y() + 8
+        p.setPen(Qt.PenStyle.NoPen)
+        for i in range(3):
+            pulse = math.sin(self._wave_t * 1.3 - i * 0.9) * 0.5 + 0.5  # 0..1
+            r = 2.0 + 2.2 * pulse
+            p.setBrush(QColor(232, 240, 254, int(120 + 110 * pulse)))
+            p.drawEllipse(QPointF(cx + i * 11, cy), r, r)
 
     def _paint_bubble(self, p: QPainter, text: str) -> None:
         p.setFont(_ui_font(9))
@@ -231,6 +238,7 @@ class CodyFloat(QWidget):
         if self._busy:
             return
         self._busy = True
+        self._thinking = False  # start on the recording waveform
         self._reply = ""
         self._set_ui("Listening…", pointing=False)
         threading.Thread(target=self._capture_worker, daemon=True).start()
@@ -246,6 +254,7 @@ class CodyFloat(QWidget):
                 return
             self._pause_listener()  # free the mic for the PTT clip
             wav = record_clip_metered(CLIP_SECONDS, on_level=self._set_wave_level)
+            self._thinking = True  # recording done → show thinking dots
             text = transcribe(wav, creds.api_key)
             if not text.strip():
                 self._finish_msg("Didn't catch that.", speak=False)
@@ -308,6 +317,7 @@ class CodyFloat(QWidget):
             self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
             return
         self._busy = True
+        self._thinking = True  # natural question → straight to thinking (no recording)
         self._reply = ""
         self._set_ui(f"“{text[:40]}”…", pointing=False)
         threading.Thread(target=self._query_worker, args=(text, creds.api_key), daemon=True).start()
@@ -333,15 +343,18 @@ class CodyFloat(QWidget):
 
         def ui() -> None:
             self._busy = False
+            self._thinking = False
             self._reply = reply
             self._fade = 1.0
             self._linger = LINGER_TICKS
             self._status = "Ctrl+Shift+Space to talk"
             if point is not None:
+                # Fly the blue Cody cursor to the target and hold the pointing
+                # pose — do NOT hijack the real OS mouse. Offset so the arrow
+                # tip lands on the target.
                 self._pointing = True
                 self._follow = False
-                _set_cursor_pos(point[0], point[1])
-                self._target = QPointF(point[0] + SLOT.x(), point[1] + SLOT.y())
+                self._target = QPointF(point[0] - 20, point[1] - 13)
                 QTimer.singleShot(HOLD_MS, self._resume_follow)
             else:
                 self._pointing = False
@@ -368,6 +381,7 @@ class CodyFloat(QWidget):
     def _finish_msg(self, msg: str, *, speak: bool) -> None:
         def ui() -> None:
             self._busy = False
+            self._thinking = False
             self._reply = msg
             self._fade = 1.0
             self._linger = LINGER_TICKS
