@@ -39,6 +39,33 @@ def test_resolve_clamps_ocr_center(monkeypatch):
     assert resolve("save", coords=None, boxes=boxes, shot=shot) == (0, 1079)
 
 
+def test_whole_word_beats_longer_substring():
+    # "troy" must hit the Troy-LL tab, not "troylazaro09" (old code took longest).
+    boxes = [
+        FakeBox("Inbox - troylazaro09@gmail.com", (3400, 115)),
+        FakeBox("Troy-LL (Troy)", (3090, 18)),
+    ]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("troy-ll", coords=None, boxes=boxes, shot=shot) == (3090, 18)
+
+
+def test_exact_label_beats_reply_bubble():
+    boxes = [
+        FakeBox("Here's Cursor Settings.", (890, 230)),
+        FakeBox("Cursor Settings", (800, 129)),
+    ]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("cursor settings", coords=None, boxes=boxes, shot=shot) == (800, 129)
+
+
+def test_no_match_falls_back_to_coords():
+    # OCR truncated the tab to "@gma" — "gmail" appears nowhere. Prefer the
+    # model's coords over pointing at an unrelated line.
+    boxes = [FakeBox("Inbox - troylazaro09@gma", (3400, 115))]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("gmail", coords=(10, 10), boxes=boxes, shot=shot) == (10, 10)
+
+
 def test_boxes_for_maps_ocr_to_screen_centers(monkeypatch):
     def fake_ocr(_img):
         return [("Save", 100, 40, 20, 10)]
