@@ -29,6 +29,17 @@ All API calls go direct from your machine. No Cloudflare worker or hosted proxy.
 - **Hey Cody** alone — Cody listens for your follow-up question.
 - **Ctrl+Shift+Space** — push-to-talk (same OpenAI path; works when the panel is not focused in a text field).
 
+## Pointing (voice / ask)
+
+When Cody answers a “where is …” question, one screenshot goes to OpenAI together with a **scene card** (UIA names and bounds for the taskbar and foreground window) and a **grid legend** on an annotated copy of the image. The model returns `found`, optional cell id, and image pixels.
+
+- **Scene + grid** — coarse layout from the grid; fine x,y when the model is confident.
+- **`found=false`** — Cody speaks the reply only; the buddy does not move.
+- **UIA** — named taskbar buttons and in-app controls (Settings list items, etc.) snap to accessibility bounds when the name matches; unlabeled icons still rely on vision + OCR snap.
+- **Crop refine** — if the model only names a grid cell, a second zoomed vision pass may refine the point before fly.
+
+**Manual smoke (operator):** 5 taskbar icons by name, 5 in-app controls in Settings, 3 missing targets → buddy stays put.
+
 ## Manual pointing (OCR)
 
 | Control | Action |
