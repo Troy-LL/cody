@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from overlay.grid import cell_center
 from overlay.ocr_targets import ocr_boxes
 from overlay.screenshot import Shot, clamp_screen, to_screen
 
@@ -51,14 +52,37 @@ def _nearest(boxes: list, point: tuple[int, int]):
     return min(boxes, key=lambda b: _dist2(b.center, point))
 
 
-def resolve(target, coords, boxes, shot: Shot):
+def _uia_center(el) -> tuple[int, int]:
+    left, top, right, bottom = el.bounds
+    return ((left + right) // 2, (top + bottom) // 2)
+
+
+def resolve(
+    target,
+    coords,
+    boxes,
+    shot: Shot,
+    *,
+    uia=None,
+    cell: str | None = None,
+    grid_spec=None,
+):
     """
-    Priority (openclicky-inspired):
-      1. Model image coords → screen (always preferred when present)
-      2. OCR exact/near match *within SNAP_PX* of that guess (pixel-perfect snap)
-      3. OCR exact match alone if the model gave no coords
-      4. None
+    Priority:
+      1. UIA name match → bounds center
+      2. Model coords + OCR snap-near (SNAP_PX)
+      3. Cell center (grid_spec required)
+      4. Model coords → screen
+      5. OCR exact without coords
+      6. None
     """
+    if uia:
+        from overlay.scene import match_uia
+
+        hit = match_uia(target, uia)
+        if hit is not None:
+            return clamp_screen(*_uia_center(hit))
+
     model_pt = None
     if coords is not None:
         model_pt = to_screen(shot, coords[0], coords[1])
@@ -70,7 +94,16 @@ def resolve(target, coords, boxes, shot: Shot):
             near = [b for b in candidates if _dist2(b.center, model_pt) <= SNAP_PX * SNAP_PX]
             if near:
                 return clamp_screen(*_nearest(near, model_pt).center)
+        if cell and grid_spec is not None:
+            pt = cell_center(grid_spec, cell)
+            if pt is not None:
+                return clamp_screen(*to_screen(shot, pt[0], pt[1]))
         return clamp_screen(*model_pt)
+
+    if cell and grid_spec is not None:
+        pt = cell_center(grid_spec, cell)
+        if pt is not None:
+            return clamp_screen(*to_screen(shot, pt[0], pt[1]))
 
     if candidates:
         return clamp_screen(*candidates[0].center)

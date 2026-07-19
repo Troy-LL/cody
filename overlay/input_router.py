@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
-from overlay import brain, pointer_resolve, screenshot
+from overlay import brain, pointer_resolve, screenshot, scene
 @dataclass
 class ScreenStep:
     label: str
@@ -28,17 +28,21 @@ class Deps:
     resolve: Callable  # (target, coords, boxes, shot) -> (x,y)|None
 
 
-def _resolve_steps(answer, boxes, shot, resolve) -> list[ScreenStep]:
+def _resolve_steps(answer, boxes, shot, resolve, *, uia=None, cell=None, grid_spec=None) -> list[ScreenStep]:
     if answer.steps:
         out: list[ScreenStep] = []
         for step in answer.steps:
-            pt = resolve(step.label, step.coords, boxes, shot)
+            pt = resolve(
+                step.label, step.coords, boxes, shot, uia=uia, cell=cell, grid_spec=grid_spec
+            )
             if pt is None:
                 continue
             out.append(ScreenStep(step.label, pt, step.say))
         return out
     if answer.target or answer.coords:
-        pt = resolve(answer.target, answer.coords, boxes, shot)
+        pt = resolve(
+            answer.target, answer.coords, boxes, shot, uia=uia, cell=cell, grid_spec=grid_spec
+        )
         if pt is not None:
             return [ScreenStep(answer.target or "here", pt, "")]
     return []
@@ -64,7 +68,8 @@ def handle_query(question: str, deps: Deps) -> Outcome:
     steps: list[ScreenStep] = []
     if answer.steps or answer.target or answer.coords:
         boxes = deps.boxes_for(shot)
-        steps = _resolve_steps(answer, boxes, shot, deps.resolve)
+        uia = scene.collect_scene()
+        steps = _resolve_steps(answer, boxes, shot, deps.resolve, uia=uia)
 
     point = steps[0].point if steps else None
     return Outcome(answer.reply_text or "", point, answer.reveal_path, steps)

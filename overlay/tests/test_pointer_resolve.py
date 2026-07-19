@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from overlay.pointer_resolve import boxes_for, resolve
+from overlay.scene import SceneEl
 from overlay.screenshot import Shot
 
 
@@ -57,6 +58,13 @@ def test_strips_icon_noise_for_ocr_snap():
     boxes = [FakeBox("Notion", (30, 40))]
     shot = Shot(image=None, scale=1.0, origin=(0, 0))
     assert resolve("my Notion icon", coords=(28, 38), boxes=boxes, shot=shot) == (30, 40)
+
+
+def test_uia_name_wins_over_far_coords():
+    uia = [SceneEl("Chrome", "Button", (100, 1000, 160, 1060))]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    pt = resolve("Chrome", coords=(10, 10), boxes=[], shot=shot, uia=uia)
+    assert pt == (130, 1030)
 
 
 def test_boxes_for_maps_ocr_to_screen_centers(monkeypatch):

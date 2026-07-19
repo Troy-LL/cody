@@ -1,5 +1,6 @@
 from overlay.brain import Answer, GuideStep
 from overlay.input_router import Deps, handle_query
+from overlay.scene import SceneEl
 from overlay.screenshot import Shot
 
 
@@ -9,7 +10,7 @@ def _deps(answer, point):
         capture=lambda: shot,
         ask=lambda q, s: answer,
         boxes_for=lambda s: [],
-        resolve=lambda target, coords, boxes, s: point,
+        resolve=lambda target, coords, boxes, s, **kw: point,
     )
 
 
@@ -42,7 +43,7 @@ def test_ask_failure_returns_graceful_message():
         capture=lambda: shot,
         ask=_raise,
         boxes_for=lambda s: [],
-        resolve=lambda target, coords, boxes, s: None,
+        resolve=lambda target, coords, boxes, s, **kw: None,
     )
     out = handle_query("hello", deps)
     assert out.reply_text == "I couldn't reach the model." and out.point is None
@@ -72,7 +73,7 @@ def test_guide_resolves_multiple_steps():
         ],
     )
 
-    def resolve(target, coords, boxes, s):
+    def resolve(target, coords, boxes, s, **kw):
         return {"File": (100, 50), "Settings": (120, 200)}[target]
 
     deps = Deps(
@@ -85,3 +86,24 @@ def test_guide_resolves_multiple_steps():
     assert out.point == (100, 50)
     assert len(out.steps) == 2
     assert out.steps[1].say == "Then Settings"
+
+
+def test_handle_query_passes_uia_to_resolve(monkeypatch):
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    fake_els = [SceneEl("Chrome", "Button", (10, 10, 20, 20))]
+    monkeypatch.setattr("overlay.input_router.scene.collect_scene", lambda: fake_els)
+    seen: list = []
+
+    def resolve(target, coords, boxes, s, **kw):
+        seen.append(kw.get("uia"))
+        return (50, 60)
+
+    deps = Deps(
+        capture=lambda: shot,
+        ask=lambda q, s: Answer("Here.", target="Chrome", coords=(1, 2)),
+        boxes_for=lambda s: [],
+        resolve=resolve,
+    )
+    out = handle_query("where is chrome", deps)
+    assert out.point == (50, 60)
+    assert seen == [fake_els]
