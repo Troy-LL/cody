@@ -206,6 +206,7 @@ class CodyApp:
 
         self.targets: list[PointTarget] = []
         self.busy = False
+        self._capturing = False
         self.flying = False
         self.pointed = False
         self._hold_job: str | None = None
@@ -306,17 +307,23 @@ class CodyApp:
         self.root.after(50, self._poll_win_messages)
 
     def _ptt_triggered(self) -> None:
-        if self.busy or self._typing_focus():
+        if self.busy or self._capturing or self._typing_focus():
             return
-        self._set_status("Listening… (Ctrl+Shift+Space)")
-        self._start_ptt_capture()
+        self._start_mic_capture("Listening… (Ctrl+Shift+Space)")
 
-    def _start_ptt_capture(self) -> None:
-        if self.busy:
+    def _start_mic_capture(self, status_msg: str) -> None:
+        if self.busy or self._capturing:
             return
+        self._capturing = True
+        self._set_status(status_msg)
 
         def work() -> None:
             try:
+                if self._listener is not None:
+                    try:
+                        self._listener.stop()
+                    except Exception:
+                        pass
                 from overlay.auth import resolve_openai
                 from overlay.stt import record_clip, transcribe
 
@@ -331,36 +338,16 @@ class CodyApp:
                     return
                 self.root.after(0, lambda t=text: self._run_query(t))
             except Exception:
-                logger.exception("PTT capture failed")
+                logger.exception("mic capture failed")
                 self.root.after(0, self._query_failed)
+            finally:
+                self._capturing = False
+                self.root.after(0, self._start_listener)
 
         threading.Thread(target=work, daemon=True).start()
 
     def _record_followup_query(self) -> None:
-        if self.busy:
-            return
-        self._set_status("Hey Cody — go ahead…")
-
-        def work() -> None:
-            try:
-                from overlay.auth import resolve_openai
-                from overlay.stt import record_clip, transcribe
-
-                creds = resolve_openai()
-                if creds.source == "none" or not creds.api_key:
-                    self.root.after(0, self._query_no_key)
-                    return
-                wav = record_clip(4.0)
-                text = transcribe(wav, creds.api_key)
-                if not text.strip():
-                    self.root.after(0, lambda: self._query_empty("Didn't catch that."))
-                    return
-                self.root.after(0, lambda t=text: self._run_query(t))
-            except Exception:
-                logger.exception("follow-up capture failed")
-                self.root.after(0, self._query_failed)
-
-        threading.Thread(target=work, daemon=True).start()
+        self._start_mic_capture("Hey Cody — go ahead…")
 
     def _run_query(self, text: str) -> None:
         if self.busy:
@@ -388,11 +375,23 @@ class CodyApp:
             logger.exception("query failed")
             self.root.after(0, self._query_failed)
 
+    def _speak_message(self, msg: str) -> None:
+        def tts_work() -> None:
+            try:
+                from voice.speak import speak_text
+
+                speak_text(msg, language_mode="en")
+            except Exception:
+                logger.exception("speak_text failed")
+
+        threading.Thread(target=tts_work, daemon=True).start()
+
     def _query_no_key(self) -> None:
         self.busy = False
         msg = "Add an OpenAI key in the panel."
         self._set_status(msg)
         self._show_bubble(msg, False)
+        self._speak_message(msg)
 
     def _query_empty(self, msg: str) -> None:
         self.busy = False
@@ -404,6 +403,7 @@ class CodyApp:
         msg = "I couldn't reach the model."
         self._set_status(msg)
         self._show_bubble(msg, False)
+        self._speak_message(msg)
 
     def _apply_outcome(self, outcome) -> None:
         self.busy = False
@@ -560,6 +560,8 @@ class CodyApp:
             pass
 
     def _handle_transcript(self, transcript: str) -> None:
+        if self.busy or self._capturing:
+            return
         logger.info("heard: %s", transcript)
         phrase = parse_hey_cody(transcript)
         if phrase is None:

@@ -26,6 +26,19 @@ def test_none_when_nothing():
     assert resolve(None, coords=None, boxes=[], shot=shot) is None
 
 
+def test_resolve_clamps_off_screen_coords(monkeypatch):
+    monkeypatch.setattr("overlay.screenshot.desktop_bounds", lambda: (0, 0, 1919, 1079))
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("nonexistent", coords=(-100, 5000), boxes=[], shot=shot) == (0, 1079)
+
+
+def test_resolve_clamps_ocr_center(monkeypatch):
+    monkeypatch.setattr("overlay.screenshot.desktop_bounds", lambda: (0, 0, 1919, 1079))
+    boxes = [FakeBox("Save", (-50, 3000))]
+    shot = Shot(image=None, scale=1.0, origin=(0, 0))
+    assert resolve("save", coords=None, boxes=boxes, shot=shot) == (0, 1079)
+
+
 def test_boxes_for_maps_ocr_to_screen_centers(monkeypatch):
     def fake_ocr(_img):
         return [("Save", 100, 40, 20, 10)]

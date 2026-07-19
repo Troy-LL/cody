@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from overlay.ocr_targets import ocr_boxes
-from overlay.screenshot import Shot, to_screen
+from overlay.screenshot import Shot, clamp_screen, to_screen
 
 
 @dataclass
@@ -30,9 +30,9 @@ def resolve(target, coords, boxes, shot: Shot):
     if target:
         box = _match(target, boxes)
         if box is not None:
-            return tuple(box.center)
+            return clamp_screen(*box.center)
     if coords is not None:
-        return to_screen(shot, coords[0], coords[1])
+        return clamp_screen(*to_screen(shot, coords[0], coords[1]))
     return None
 
 

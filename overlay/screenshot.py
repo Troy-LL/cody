@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import mss
 from PIL import Image
 
 
@@ -20,7 +19,25 @@ def to_screen(shot: Shot, x: float, y: float) -> tuple[int, int]:
     return (sx, sy)
 
 
+def desktop_bounds() -> tuple[int, int, int, int]:
+    try:
+        import mss
+
+        with mss.mss() as sct:
+            mon = sct.monitors[0]
+            return (mon["left"], mon["top"], mon["left"] + mon["width"] - 1, mon["top"] + mon["height"] - 1)
+    except Exception:
+        return (0, 0, 65535, 65535)
+
+
+def clamp_screen(x: int, y: int) -> tuple[int, int]:
+    left, top, right, bottom = desktop_bounds()
+    return (max(left, min(right, x)), max(top, min(bottom, y)))
+
+
 def capture(max_width: int = 1536) -> Shot:
+    import mss
+
     with mss.mss() as sct:
         mon = sct.monitors[0]  # [0] = full virtual desktop across all monitors
         raw = sct.grab(mon)

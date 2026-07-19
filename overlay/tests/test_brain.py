@@ -24,3 +24,9 @@ def test_parse_text_only():
 def test_parse_reveal():
     ans = parse_tool_calls(_msg("Opening it.", [("reveal", {"path": "C:/x.txt"})]))
     assert ans.reveal_path == "C:/x.txt"
+
+
+def test_parse_point_empty_content_synthesizes_reply():
+    ans = parse_tool_calls(_msg(None, [("point", {"target": "Save", "x": 12, "y": 34})]))
+    assert ans.reply_text == "Here's Save."
+    assert ans.target == "Save"

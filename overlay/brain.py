@@ -73,6 +73,13 @@ def parse_tool_calls(message) -> Answer:
                 ans.coords = (float(args["x"]), float(args["y"]))
         elif name == "reveal":
             ans.reveal_path = args.get("path")
+    if not ans.reply_text and (getattr(message, "tool_calls", None) or []):
+        if ans.target:
+            ans.reply_text = f"Here's {ans.target}."
+        elif ans.reveal_path:
+            ans.reply_text = f"Opening {ans.reveal_path}."
+        else:
+            ans.reply_text = "Okay."
     return ans
 
 
