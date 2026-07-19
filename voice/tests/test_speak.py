@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -109,28 +109,21 @@ def test_malformed_config_soft_fails(tmp_path: Path) -> None:
         assert speak("receipt_lazada.pdf", "en") is False
 
 
-def test_happy_path_calls_tts_and_startfile(tmp_path: Path) -> None:
+def test_happy_path_calls_tts_and_play_pcm(tmp_path: Path) -> None:
     cfg = _enabled_cfg(tmp_path)
-    audio = b"ID3fake"
+    audio = b"\x00\x01" * 8
     with (
         patch("voice.speak.CONFIG_PATH", cfg),
         patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
         patch("voice.speak._fetch_tts", return_value=audio) as fetch,
-        patch("voice.speak.os.startfile") as startfile,
-        patch("voice.speak.tempfile.NamedTemporaryFile") as ntf,
+        patch("voice.speak._play_pcm") as play,
     ):
-        tmp = MagicMock()
-        tmp.name = str(tmp_path / "out.mp3")
-        tmp.__enter__.return_value = tmp
-        tmp.__exit__.return_value = False
-        ntf.return_value = tmp
-
         assert speak("receipt_lazada.pdf", "EN") is True
 
     fetch.assert_called_once()
     assert fetch.call_args.kwargs["text"] == "Found it — receipt_lazada.pdf."
     assert fetch.call_args.kwargs["voice_id"] == "en-voice"
-    startfile.assert_called_once_with(tmp.name)
+    play.assert_called_once_with(audio)
 
 
 def test_taglish_uses_tl_template(tmp_path: Path) -> None:
@@ -139,14 +132,8 @@ def test_taglish_uses_tl_template(tmp_path: Path) -> None:
         patch("voice.speak.CONFIG_PATH", cfg),
         patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
         patch("voice.speak._fetch_tts", return_value=b"x") as fetch,
-        patch("voice.speak.os.startfile"),
-        patch("voice.speak.tempfile.NamedTemporaryFile") as ntf,
+        patch("voice.speak._play_pcm"),
     ):
-        tmp = MagicMock()
-        tmp.name = str(tmp_path / "out.mp3")
-        tmp.__enter__.return_value = tmp
-        tmp.__exit__.return_value = False
-        ntf.return_value = tmp
         assert speak("a.pdf", "taglish") is True
     assert fetch.call_args.kwargs["text"] == "Nakita ko na — a.pdf."
     assert fetch.call_args.kwargs["voice_id"] == "tl-voice"
@@ -158,14 +145,8 @@ def test_speak_text_passes_through(tmp_path: Path) -> None:
         patch("voice.speak.CONFIG_PATH", cfg),
         patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
         patch("voice.speak._fetch_tts", return_value=b"x") as fetch,
-        patch("voice.speak.os.startfile"),
-        patch("voice.speak.tempfile.NamedTemporaryFile") as ntf,
+        patch("voice.speak._play_pcm"),
     ):
-        tmp = MagicMock()
-        tmp.name = str(tmp_path / "out.mp3")
-        tmp.__enter__.return_value = tmp
-        tmp.__exit__.return_value = False
-        ntf.return_value = tmp
         assert speak_text("The address bar is at the top.", "en") is True
     assert fetch.call_args.kwargs["text"] == "The address bar is at the top."
 

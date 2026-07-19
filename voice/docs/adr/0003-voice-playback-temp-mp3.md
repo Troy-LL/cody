@@ -1,3 +1,5 @@
-# Voice playback via temp MP3
+# Voice playback via in-process PCM
 
-`speak` writes ElevenLabs audio bytes to a temporary `.mp3` file and plays it with `os.startfile`. No new playback dependencies. The temp file is left on disk after start (avoid player file-lock races). Playback/start failures soft-fail as `false`.
+`speak` requests ElevenLabs `pcm_22050` (s16le mono) and plays it with `sounddevice` / `numpy` in-process. No temp `.mp3` and no `os.startfile`, so the OS media player does not pop up. Playback failures soft-fail as `false`.
+
+Requires `sounddevice` and `numpy` (overlay optional deps).

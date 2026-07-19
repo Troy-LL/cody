@@ -10,6 +10,14 @@ $env:PYTHONPATH = (Get-Location).Path
 .\.venv\Scripts\python -m overlay
 ```
 
+If Windows Security blocks mic, hotkeys, or capture, run elevated (UAC). Prefer the `.bat` (bypasses ExecutionPolicy):
+
+```powershell
+.\scripts\run_overlay_admin.bat
+```
+
+Built `dist\Cody.exe` also requests Administrator (`--uac-admin`).
+
 Needs [Tesseract-OCR](https://github.com/UB-Mannheim/tesseract/wiki) on PATH for screen scanning and pointing.
 
 ## API keys
@@ -27,7 +35,7 @@ All API calls go direct from your machine. No Cloudflare worker or hosted proxy.
 
 - **Hey Cody, where's my ___** — wake phrase (also accepts “Codey”). Cody records your question, sends one screenshot to OpenAI, speaks the reply, and points if the model names a target.
 - **Hey Cody** alone — Cody listens for your follow-up question.
-- **Ctrl+Shift+Space** — push-to-talk (same OpenAI path; works when the panel is not focused in a text field).
+- **Ctrl+Shift+Space** — hold to talk, release to send (same OpenAI path). Tray “Talk” uses a fixed-length clip.
 
 ## Pointing (voice / ask)
 

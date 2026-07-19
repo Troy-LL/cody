@@ -75,6 +75,17 @@ def _physical_to_logical(x: int, y: int) -> tuple[int, int]:
         return int(x), int(y)
 
 
+VK_SPACE = 0x20
+
+
+def _ptt_key_down() -> bool:
+    """True while the PTT key (Space) is physically held — for hold-to-talk."""
+    try:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_SPACE) & 0x8000)
+    except Exception:
+        return False
+
+
 WIN_W, WIN_H = 300, 120
 # Cody arrow tracks lower-right of OS cursor
 SLOT = QPoint(6, 8)
@@ -86,6 +97,7 @@ DAMP = 0.75
 
 class CodyFloat(QWidget):
     heard = Signal(str)  # emitted from the wake-word listener thread
+    _ui = Signal(object)  # run a callable on the GUI thread (queued from workers)
 
     def __init__(self) -> None:
         super().__init__(None)
@@ -106,6 +118,7 @@ class CodyFloat(QWidget):
         self._status = "Ctrl+Shift+Space to talk"
         self._reply = ""
         self._busy = False
+        self._thinking = False  # recording → False (waveform), model working → True (dots)
         self._follow = True  # false while holding a pointing pose
         self._fade = 1.0
         self._linger = 0
@@ -114,6 +127,7 @@ class CodyFloat(QWidget):
         self._listener = None
 
         self.heard.connect(self._on_heard_main)
+        self._ui.connect(lambda fn: fn())  # queued when emitted off the GUI thread
 
         self._timer = QTimer(self)
         self._timer.setInterval(16)
@@ -161,27 +175,40 @@ class CodyFloat(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self._paint_cursor(p)
         if self._busy:
-            self._paint_wave(p)
+            if self._thinking:
+                self._paint_thinking(p)
+            else:
+                self._paint_wave(p)
         elif self._reply:
             self._paint_bubble(p, self._reply)
 
     def _paint_wave(self, p: QPainter) -> None:
-        """Animated voice bars while listening/thinking — like a mic waveform."""
-        bars = 22
-        gap = 6.0
+        """Live mic bars while hold-to-talk recording."""
+        bars = 18
+        gap = 5.0
+        bar_w = 3.0
         x0 = ARROW.x() + 34
         cy = ARROW.y() + 10
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(232, 240, 254, 235))
+        p.setBrush(QColor(120, 190, 255, 245))
         for i in range(bars):
-            # Envelope taper toward the ends; small shimmer so idle isn't dead-flat
             env = math.sin(math.pi * (i + 1) / (bars + 1))
-            shimmer = math.sin(self._wave_t + i * 0.7) * 0.5 + 0.5  # 0..1
-            # Height driven by real mic level; shimmer only modulates it
-            amp = self._wave_level * (0.55 + 0.45 * shimmer)
-            h = 3 + env * (3 + 34 * amp)
+            shimmer = 0.55 + 0.45 * (math.sin(self._wave_t + i * 0.55) * 0.5 + 0.5)
+            amp = self._wave_level * shimmer
+            h = 4 + env * (4 + 36 * amp)
             x = x0 + i * gap
-            p.drawRoundedRect(QRectF(x, cy - h / 2, 2.4, h), 1.2, 1.2)
+            p.drawRoundedRect(QRectF(x, cy - h / 2, bar_w, h), 1.5, 1.5)
+
+    def _paint_thinking(self, p: QPainter) -> None:
+        """Three pulsing dots while Whisper / the model works."""
+        cx = ARROW.x() + 36
+        cy = ARROW.y() + 10
+        p.setPen(Qt.PenStyle.NoPen)
+        for i in range(3):
+            pulse = math.sin(self._wave_t * 1.3 - i * 0.9) * 0.5 + 0.5  # 0..1
+            r = 2.2 + 2.4 * pulse
+            p.setBrush(QColor(120, 190, 255, int(130 + 110 * pulse)))
+            p.drawEllipse(QPointF(cx + i * 12, cy), r, r)
 
     def _paint_bubble(self, p: QPainter, text: str) -> None:
         p.setFont(_ui_font(9))
@@ -239,26 +266,35 @@ class CodyFloat(QWidget):
 
     # ---- brain flow -----------------------------------------------------
 
-    def trigger_ptt(self) -> None:
-        """Ctrl+Shift+Space / tray: record a clip, transcribe, answer."""
+    def trigger_ptt(self, hold: bool = False) -> None:
+        """Ctrl+Shift+Space / tray: record a clip, transcribe, answer.
+
+        hold=True → record while Space stays held (release to stop).
+        hold=False (tray / wake word) → fixed-length clip.
+        """
         if self._busy:
             return
         self._busy = True
+        self._thinking = False  # start on the recording waveform
         self._reply = ""
         self._set_ui("Listening…", pointing=False)
-        threading.Thread(target=self._capture_worker, daemon=True).start()
+        threading.Thread(target=self._capture_worker, args=(hold,), daemon=True).start()
 
-    def _capture_worker(self) -> None:
+    def _capture_worker(self, hold: bool = False) -> None:
         try:
             from overlay.auth import resolve_openai
-            from overlay.stt import record_clip_metered, transcribe
+            from overlay.stt import record_clip_metered, record_clip_while, transcribe
 
             creds = resolve_openai()
             if creds.source == "none" or not creds.api_key:
                 self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
                 return
             self._pause_listener()  # free the mic for the PTT clip
-            wav = record_clip_metered(CLIP_SECONDS, on_level=self._set_wave_level)
+            if hold:
+                wav = record_clip_while(_ptt_key_down, on_level=self._set_wave_level)
+            else:
+                wav = record_clip_metered(CLIP_SECONDS, on_level=self._set_wave_level)
+            self._thinking = True  # recording done → show thinking dots
             text = transcribe(wav, creds.api_key)
             if not text.strip():
                 self._finish_msg("Didn't catch that.", speak=False)
@@ -269,7 +305,7 @@ class CodyFloat(QWidget):
             logger.exception("capture failed")
             self._finish_msg("Something went wrong.", speak=False)
         finally:
-            QTimer.singleShot(0, self._start_listener)  # resume wake word
+            self._ui.emit(self._start_listener)  # resume wake word (GUI thread)
 
     # ---- wake word ("Hey Cody") ----------------------------------------
 
@@ -321,6 +357,7 @@ class CodyFloat(QWidget):
             self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
             return
         self._busy = True
+        self._thinking = True  # natural question → straight to thinking (no recording)
         self._reply = ""
         self._set_ui(f"“{text[:40]}”…", pointing=False)
         threading.Thread(target=self._query_worker, args=(text, creds.api_key), daemon=True).start()
@@ -350,6 +387,7 @@ class CodyFloat(QWidget):
 
         def ui_text_only() -> None:
             self._busy = False
+            self._thinking = False
             self._reply = reply
             self._fade = 1.0
             self._linger = LINGER_TICKS
@@ -367,17 +405,18 @@ class CodyFloat(QWidget):
 
         if not steps:
             # Not found / text-only — speak the explanation, do not fling the buddy.
-            QTimer.singleShot(0, ui_text_only)
+            self._ui.emit(ui_text_only)
             if reply:
                 self._speak(reply)
             return
 
         if reply:
             self._speak(reply)
-        QTimer.singleShot(0, lambda: self._start_guide(steps, reply))
+        self._ui.emit(lambda: self._start_guide(steps, reply))
 
     def _start_guide(self, steps, opener: str) -> None:
         self._busy = False
+        self._thinking = False
         self._status = "Ctrl+Shift+Space to talk"
         self._guide_steps = list(steps)
         self._guide_index = 0
@@ -420,6 +459,7 @@ class CodyFloat(QWidget):
     def _finish_msg(self, msg: str, *, speak: bool) -> None:
         def ui() -> None:
             self._busy = False
+            self._thinking = False
             self._reply = msg
             self._fade = 1.0
             self._linger = LINGER_TICKS
@@ -427,7 +467,7 @@ class CodyFloat(QWidget):
             self._status = "Ctrl+Shift+Space to talk"
             self.update()
 
-        QTimer.singleShot(0, ui)
+        self._ui.emit(ui)
         if speak:
             self._speak(msg)
 
@@ -437,7 +477,7 @@ class CodyFloat(QWidget):
             self._pointing = pointing
             self.update()
 
-        QTimer.singleShot(0, ui)
+        self._ui.emit(ui)
 
     def _speak(self, text: str) -> None:
         def work() -> None:
@@ -470,7 +510,7 @@ def main(argv: list[str] | None = None) -> int:
         def nativeEventFilter(self, eventType, message):
             return self._hot.native_event(eventType, message), 0
 
-    hot = HotkeyFilter(0, on_ptt=win.trigger_ptt, on_quit=app.quit)
+    hot = HotkeyFilter(0, on_ptt=lambda: win.trigger_ptt(hold=True), on_quit=app.quit)
     if not hot.register():
         logger.warning("hotkey failed — use tray menu")
     bridge = Bridge(hot)

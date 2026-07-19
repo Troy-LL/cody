@@ -15,6 +15,7 @@ if (-not (Test-Path .venv\Scripts\python.exe)) {
   --clean `
   --onefile `
   --windowed `
+  --uac-admin `
   --name Cody `
   --paths $Root `
   --hidden-import overlay `

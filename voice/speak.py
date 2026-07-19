@@ -6,7 +6,6 @@ import json
 import logging
 import os
 import random
-import tempfile
 import urllib.error
 import urllib.request
 
@@ -76,6 +75,11 @@ def render_point_prompt(label: str, language_mode: str = "en") -> str:
     return template.format(label=str(label).strip() or "this")
 
 
+# PCM s16le mono — play in-process via sounddevice (no OS media-player popup).
+TTS_PCM_RATE = 22050
+TTS_OUTPUT_FORMAT = "pcm_22050"
+
+
 def _fetch_tts(
     *,
     base_url: str,
@@ -84,7 +88,10 @@ def _fetch_tts(
     model_id: str,
     text: str,
 ) -> bytes:
-    url = f"{base_url.rstrip('/')}/v1/text-to-speech/{voice_id}"
+    url = (
+        f"{base_url.rstrip('/')}/v1/text-to-speech/{voice_id}"
+        f"?output_format={TTS_OUTPUT_FORMAT}"
+    )
     payload = json.dumps({"text": text, "model_id": model_id}).encode("utf-8")
     request = urllib.request.Request(
         url,
@@ -93,19 +100,25 @@ def _fetch_tts(
         headers={
             "xi-api-key": api_key,
             "Content-Type": "application/json",
-            "Accept": "audio/mpeg",
+            "Accept": "application/octet-stream",
         },
     )
     with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_S) as response:
         return response.read()
 
 
-def _play_mp3(audio: bytes) -> None:
-    # delete=False: leave file so the OS player can open it after we return.
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as handle:
-        handle.write(audio)
-        path = handle.name
-    os.startfile(path)  # type: ignore[attr-defined]
+def _play_pcm(audio: bytes, samplerate: int = TTS_PCM_RATE) -> None:
+    """Play raw PCM int16 mono without opening an external player."""
+    import numpy as np
+    import sounddevice as sd
+
+    if not audio:
+        return
+    data = np.frombuffer(audio, dtype=np.int16)
+    if data.size == 0:
+        return
+    sd.play(data, samplerate=samplerate)
+    sd.wait()
 
 
 def _elevenlabs_utterance(text: str, language_mode: str) -> str:
@@ -155,7 +168,7 @@ def _elevenlabs_utterance(text: str, language_mode: str) -> str:
         if not audio:
             logger.warning("speak: empty TTS response")
             return "fail"
-        _play_mp3(audio)
+        _play_pcm(audio)
     except (TimeoutError, urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
         logger.warning("speak: TTS/playback failed: %s", exc)
         return "fail"
