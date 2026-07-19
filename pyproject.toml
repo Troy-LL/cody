@@ -28,6 +28,8 @@ overlay = [
     "SpeechRecognition>=3.10",
     "sounddevice>=0.5",
     "numpy>=1.26",
+    "openai>=1.40",
+    "mss>=9.0",
 ]
 
 [project.scripts]
