@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from voice.config import ConfigLoadError
-from voice.speak import render_point_prompt, render_template, speak, speak_point
+from voice.speak import render_point_prompt, render_template, speak, speak_point, speak_text
 
 
 def _write_cfg(path: Path, data: dict) -> Path:
@@ -150,6 +150,24 @@ def test_taglish_uses_tl_template(tmp_path: Path) -> None:
         assert speak("a.pdf", "taglish") is True
     assert fetch.call_args.kwargs["text"] == "Nakita ko na — a.pdf."
     assert fetch.call_args.kwargs["voice_id"] == "tl-voice"
+
+
+def test_speak_text_passes_through(tmp_path: Path) -> None:
+    cfg = _enabled_cfg(tmp_path)
+    with (
+        patch("voice.speak.CONFIG_PATH", cfg),
+        patch("voice.speak.os.environ", {"ELEVENLABS_API_KEY": "k"}),
+        patch("voice.speak._fetch_tts", return_value=b"x") as fetch,
+        patch("voice.speak.os.startfile"),
+        patch("voice.speak.tempfile.NamedTemporaryFile") as ntf,
+    ):
+        tmp = MagicMock()
+        tmp.name = str(tmp_path / "out.mp3")
+        tmp.__enter__.return_value = tmp
+        tmp.__exit__.return_value = False
+        ntf.return_value = tmp
+        assert speak_text("The address bar is at the top.", "en") is True
+    assert fetch.call_args.kwargs["text"] == "The address bar is at the top."
 
 
 def test_tts_failure_soft_fails(tmp_path: Path) -> None:

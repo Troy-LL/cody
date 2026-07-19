@@ -17,15 +17,24 @@ WM_HOTKEY = 0x0312
 
 HOTKEY_POINT = 1
 HOTKEY_QUIT = 2
+HOTKEY_PTT = 3
+VK_SPACE = 0x20
 
 
 class HotkeyFilter:
-    """Register Ctrl+Shift+C (point) and Ctrl+Shift+Q (quit)."""
+    """Register global hotkeys (Ctrl+Shift+C/Q and/or Ctrl+Shift+Space PTT)."""
 
-    def __init__(self, hwnd: int, on_point, on_quit) -> None:
+    def __init__(
+        self,
+        hwnd: int,
+        on_point=None,
+        on_quit=None,
+        on_ptt=None,
+    ) -> None:
         self._hwnd = hwnd
         self._on_point = on_point
         self._on_quit = on_quit
+        self._on_ptt = on_ptt
         self._user32 = ctypes.windll.user32
         self._registered: list[int] = []
 
@@ -34,19 +43,35 @@ class HotkeyFilter:
             return False
         # hwnd=0 → thread message queue (more reliable than Tool/transparent windows)
         target = 0
-        ok_c = self._user32.RegisterHotKey(
-            target, HOTKEY_POINT, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 0x43  # 'C'
-        )
-        ok_q = self._user32.RegisterHotKey(
-            target, HOTKEY_QUIT, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 0x51  # 'Q'
-        )
-        if ok_c:
-            self._registered.append(HOTKEY_POINT)
-        if ok_q:
-            self._registered.append(HOTKEY_QUIT)
-        if not ok_c:
-            logger.warning("RegisterHotKey Ctrl+Shift+C failed")
-        return bool(ok_c)
+        ok_any = False
+        if self._on_point is not None:
+            ok_c = self._user32.RegisterHotKey(
+                target, HOTKEY_POINT, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 0x43  # 'C'
+            )
+            if ok_c:
+                self._registered.append(HOTKEY_POINT)
+                ok_any = True
+            else:
+                logger.warning("RegisterHotKey Ctrl+Shift+C failed")
+        if self._on_quit is not None:
+            ok_q = self._user32.RegisterHotKey(
+                target, HOTKEY_QUIT, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 0x51  # 'Q'
+            )
+            if ok_q:
+                self._registered.append(HOTKEY_QUIT)
+                ok_any = True
+            else:
+                logger.warning("RegisterHotKey Ctrl+Shift+Q failed")
+        if self._on_ptt is not None:
+            ok_p = self._user32.RegisterHotKey(
+                target, HOTKEY_PTT, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, VK_SPACE
+            )
+            if ok_p:
+                self._registered.append(HOTKEY_PTT)
+                ok_any = True
+            else:
+                logger.warning("RegisterHotKey Ctrl+Shift+Space failed")
+        return ok_any
 
     def unregister(self) -> None:
         if sys.platform != "win32":
@@ -67,11 +92,14 @@ class HotkeyFilter:
             msg = wintypes.MSG.from_address(int(message))
             if msg.message != WM_HOTKEY:
                 return False
-            if msg.wParam == HOTKEY_POINT:
+            if msg.wParam == HOTKEY_POINT and self._on_point is not None:
                 self._on_point()
                 return True
-            if msg.wParam == HOTKEY_QUIT:
+            if msg.wParam == HOTKEY_QUIT and self._on_quit is not None:
                 self._on_quit()
+                return True
+            if msg.wParam == HOTKEY_PTT and self._on_ptt is not None:
+                self._on_ptt()
                 return True
         except Exception:
             logger.warning("hotkey native_event failed", exc_info=True)

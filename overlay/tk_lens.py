@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 import time
 import tkinter as tk
@@ -11,9 +12,9 @@ from tkinter import ttk
 from overlay.ocr_targets import (
     PointTarget,
     enable_dpi_awareness,
-    rank_targets_for_query,
     scan_full_screen,
 )
+from overlay.hotkey import HotkeyFilter, WM_HOTKEY
 from overlay.query_parse import extract_search_phrase, parse_hey_cody
 
 logger = logging.getLogger(__name__)
@@ -209,6 +210,7 @@ class CodyApp:
         self.pointed = False
         self._hold_job: str | None = None
         self._listener = None
+        self._hot: HotkeyFilter | None = None
 
         self.root.bind_all("<KeyPress-Escape>", lambda _e: self.quit())
         self.root.bind_all("<KeyPress-space>", self._on_space)
@@ -219,6 +221,8 @@ class CodyApp:
 
         self.root.after(TICK_MS, self._tick_follow)
         self.root.after(150, self._boot)
+        self.root.after(200, self._register_hotkeys)
+        self.root.after(50, self._poll_win_messages)
 
     def _boot(self) -> None:
         self._refresh_openai_status()
@@ -271,6 +275,161 @@ class CodyApp:
         except Exception as e:
             logger.exception("save openai key failed")
             self._set_status(f"Could not save OpenAI key: {e}")
+
+    def _register_hotkeys(self) -> None:
+        if sys.platform != "win32":
+            return
+        self._hot = HotkeyFilter(0, on_ptt=self._hotkey_ptt)
+        if not self._hot.register():
+            logger.warning("PTT hotkey Ctrl+Shift+Space failed to register")
+
+    def _hotkey_ptt(self) -> None:
+        self.root.after(0, self._ptt_triggered)
+
+    def _poll_win_messages(self) -> None:
+        if sys.platform != "win32" or self._hot is None:
+            self.root.after(50, self._poll_win_messages)
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            user32 = ctypes.windll.user32
+            msg = wintypes.MSG()
+            while user32.PeekMessageW(ctypes.byref(msg), 0, WM_HOTKEY, WM_HOTKEY, 1):
+                self._hot.native_event("windows_generic_MSG", ctypes.addressof(msg))
+        except Exception:
+            logger.debug("poll hotkey failed", exc_info=True)
+        self.root.after(50, self._poll_win_messages)
+
+    def _ptt_triggered(self) -> None:
+        if self.busy or self._typing_focus():
+            return
+        self._set_status("Listening… (Ctrl+Shift+Space)")
+        self._start_ptt_capture()
+
+    def _start_ptt_capture(self) -> None:
+        if self.busy:
+            return
+        self.busy = True
+
+        def work() -> None:
+            try:
+                from overlay.auth import resolve_openai
+                from overlay.stt import record_clip, transcribe
+
+                creds = resolve_openai()
+                if creds.source == "none" or not creds.api_key:
+                    self.root.after(0, self._query_no_key)
+                    return
+                wav = record_clip(4.0)
+                text = transcribe(wav, creds.api_key)
+                if not text.strip():
+                    self.root.after(0, lambda: self._query_empty("Didn't catch that."))
+                    return
+                self._run_query_worker(text)
+            except Exception:
+                logger.exception("PTT capture failed")
+                self.root.after(0, self._query_failed)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _record_followup_query(self) -> None:
+        if self.busy:
+            return
+        self.busy = True
+        self._set_status("Hey Cody — go ahead…")
+
+        def work() -> None:
+            try:
+                from overlay.auth import resolve_openai
+                from overlay.stt import record_clip, transcribe
+
+                creds = resolve_openai()
+                if creds.source == "none" or not creds.api_key:
+                    self.root.after(0, self._query_no_key)
+                    return
+                wav = record_clip(4.0)
+                text = transcribe(wav, creds.api_key)
+                if not text.strip():
+                    self.root.after(0, lambda: self._query_empty("Didn't catch that."))
+                    return
+                self._run_query_worker(text)
+            except Exception:
+                logger.exception("follow-up capture failed")
+                self.root.after(0, self._query_failed)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _run_query(self, text: str) -> None:
+        if self.busy:
+            return
+        text = " ".join(str(text or "").strip().split())
+        if not text:
+            self._set_status("Didn't catch that.")
+            return
+        self._set_status(f'“{text[:48]}”…')
+        self.busy = True
+        threading.Thread(target=lambda: self._run_query_worker(text), daemon=True).start()
+
+    def _run_query_worker(self, text: str) -> None:
+        try:
+            from overlay.auth import resolve_openai
+            from overlay.input_router import default_deps, handle_query
+
+            creds = resolve_openai()
+            if creds.source == "none" or not creds.api_key:
+                self.root.after(0, self._query_no_key)
+                return
+            outcome = handle_query(text, default_deps(creds.api_key))
+            self.root.after(0, lambda: self._apply_outcome(outcome))
+        except Exception:
+            logger.exception("query failed")
+            self.root.after(0, self._query_failed)
+
+    def _query_no_key(self) -> None:
+        self.busy = False
+        msg = "Add an OpenAI key in the panel."
+        self._set_status(msg)
+        self._show_bubble(msg, False)
+
+    def _query_empty(self, msg: str) -> None:
+        self.busy = False
+        self._set_status(msg)
+        self._show_bubble(msg, False)
+
+    def _query_failed(self) -> None:
+        self.busy = False
+        msg = "I couldn't reach the model."
+        self._set_status(msg)
+        self._show_bubble(msg, False)
+
+    def _apply_outcome(self, outcome) -> None:
+        self.busy = False
+        reply = (outcome.reply_text or "").strip()
+        if reply:
+            self._set_status(reply[:120])
+
+            def tts_work() -> None:
+                try:
+                    from voice.speak import speak_text
+
+                    ok = speak_text(reply, language_mode="en")
+                except Exception:
+                    logger.exception("speak_text failed")
+                    ok = False
+                self.root.after(0, lambda: self._show_bubble(reply, ok))
+
+            threading.Thread(target=tts_work, daemon=True).start()
+        if outcome.point is not None:
+            self._fly_to(outcome.point[0], outcome.point[1])
+        if outcome.reveal_path:
+            try:
+                from reveal.reveal import reveal
+
+                reveal(outcome.reveal_path)
+            except Exception:
+                logger.exception("reveal failed")
 
     def _refresh_openai_status(self) -> None:
         try:
@@ -410,43 +569,10 @@ class CodyApp:
             else:
                 self._set_status(f'Heard "{transcript[:48]}" — say Hey Cody, where\'s my …')
                 return
-        if not phrase:
-            self._set_status("Heard Hey Cody — finish with where's my ____")
+        if phrase == "":
+            self._record_followup_query()
             return
-        self._voice_find(phrase)
-
-    def _voice_find(self, query: str) -> None:
-        if self.busy:
-            return
-        self.busy = True
-        self._set_status(f'Finding “{query}”…')
-
-        def work() -> None:
-            try:
-                # Prefer matching current list; else full-screen OCR ranked by query
-                ranked = rank_targets_for_query(self.targets, query, k=MAX_FINDS)
-                if not ranked:
-                    ranked = scan_full_screen(query=query, k=MAX_FINDS)
-            except Exception as e:
-                logger.exception("voice find failed")
-                self.root.after(0, lambda: self._scan_failed(str(e)))
-                return
-            self.root.after(0, lambda: self._voice_find_done(ranked, query))
-
-        threading.Thread(target=work, daemon=True).start()
-
-    def _voice_find_done(self, targets: list[PointTarget], query: str) -> None:
-        self.busy = False
-        if not targets:
-            self._set_status(f'No match for “{query}” — Scan then try again')
-            return
-        # Merge into list (best first) so keys still work
-        self.targets = targets
-        self.listbox.delete(0, tk.END)
-        for i, t in enumerate(targets):
-            self.listbox.insert(tk.END, f"{_slot_label(i)}. {t.label}")
-        self._set_status(f'Found “{targets[0].label}” for “{query}”')
-        self._point(0)
+        self._run_query(phrase)
 
     def _scan(self) -> None:
         if self.busy:
@@ -631,6 +757,8 @@ class CodyApp:
         self.root.after(TICK_MS, self._tick_follow)
 
     def quit(self) -> None:
+        if self._hot is not None:
+            self._hot.unregister()
         if self._listener is not None:
             try:
                 self._listener.stop()

@@ -166,6 +166,24 @@ def _elevenlabs_utterance(text: str, language_mode: str) -> str:
     return "ok"
 
 
+def speak_text(text: str, language_mode: str = "en") -> bool:
+    """Speak arbitrary reply text via ElevenLabs. Soft-fail when TTS is unavailable."""
+    if not str(text).strip():
+        logger.warning("speak_text: empty text")
+        return False
+
+    mode = str(language_mode).strip().lower()
+    if mode not in TEMPLATES and mode not in POINT_TEMPLATES:
+        mode = "en"
+
+    result = _elevenlabs_utterance(str(text).strip(), mode)
+    if result == "ok":
+        return True
+    if result == "skip":
+        return True
+    return False
+
+
 def speak(filename: str, language_mode: str) -> bool:
     """Speak a templated confirmation for *filename* in *language_mode*."""
     if not str(filename).strip():
