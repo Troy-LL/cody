@@ -61,6 +61,42 @@ def record_clip_metered(
     return _wav_bytes(np.concatenate(parts), samplerate)
 
 
+def record_clip_while(
+    is_held: Callable[[], bool],
+    on_level: Callable[[float], None] | None = None,
+    samplerate: int = 16000,
+    min_seconds: float = 0.3,
+    max_seconds: float = 15.0,
+) -> bytes:
+    """Record for as long as `is_held()` is True (hold-to-talk).
+
+    Always captures at least `min_seconds` (so a quick tap isn't empty) and
+    stops at `max_seconds` as a safety cap.
+    """
+    import numpy as np
+    import sounddevice as sd
+
+    chunk = max(1, int(0.05 * samplerate))  # ~50ms
+    parts = []
+    elapsed = 0.0
+    with sd.InputStream(samplerate=samplerate, channels=1, dtype="int16") as stream:
+        while True:
+            data, _ = stream.read(chunk)
+            parts.append(data.copy())
+            elapsed += len(data) / samplerate
+            if on_level is not None:
+                rms = float(np.sqrt(np.mean(data.astype(np.float32) ** 2)))
+                try:
+                    on_level(min(1.0, rms / LEVEL_FULL_SCALE))
+                except Exception:
+                    logger.debug("on_level failed", exc_info=True)
+            if elapsed >= min_seconds and not is_held():
+                break
+            if elapsed >= max_seconds:
+                break
+    return _wav_bytes(np.concatenate(parts), samplerate)
+
+
 def transcribe(wav_bytes: bytes, api_key: str) -> str:
     if not wav_bytes:
         return ""

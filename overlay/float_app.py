@@ -3,6 +3,7 @@ screen on Ctrl+Shift+Space, answers by voice, and points at what you ask for."""
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import math
 import os
@@ -51,6 +52,17 @@ def _ui_font(size: int = 9, bold: bool = False) -> QFont:
     if bold:
         font.setWeight(QFont.Weight.DemiBold)
     return font
+
+
+VK_SPACE = 0x20
+
+
+def _ptt_key_down() -> bool:
+    """True while the PTT key (Space) is physically held — for hold-to-talk."""
+    try:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(VK_SPACE) & 0x8000)
+    except Exception:
+        return False
 
 
 WIN_W, WIN_H = 300, 120
@@ -233,27 +245,34 @@ class CodyFloat(QWidget):
 
     # ---- brain flow -----------------------------------------------------
 
-    def trigger_ptt(self) -> None:
-        """Ctrl+Shift+Space / tray: record a clip, transcribe, answer."""
+    def trigger_ptt(self, hold: bool = False) -> None:
+        """Ctrl+Shift+Space / tray: record a clip, transcribe, answer.
+
+        hold=True → record while the hotkey stays held (release to stop).
+        hold=False (tray / wake word) → fixed-length clip.
+        """
         if self._busy:
             return
         self._busy = True
         self._thinking = False  # start on the recording waveform
         self._reply = ""
         self._set_ui("Listening…", pointing=False)
-        threading.Thread(target=self._capture_worker, daemon=True).start()
+        threading.Thread(target=self._capture_worker, args=(hold,), daemon=True).start()
 
-    def _capture_worker(self) -> None:
+    def _capture_worker(self, hold: bool = False) -> None:
         try:
             from overlay.auth import resolve_openai
-            from overlay.stt import record_clip_metered, transcribe
+            from overlay.stt import record_clip_metered, record_clip_while, transcribe
 
             creds = resolve_openai()
             if creds.source == "none" or not creds.api_key:
                 self._finish_msg("Add an OpenAI key (or Codex login).", speak=True)
                 return
             self._pause_listener()  # free the mic for the PTT clip
-            wav = record_clip_metered(CLIP_SECONDS, on_level=self._set_wave_level)
+            if hold:
+                wav = record_clip_while(_ptt_key_down, on_level=self._set_wave_level)
+            else:
+                wav = record_clip_metered(CLIP_SECONDS, on_level=self._set_wave_level)
             self._thinking = True  # recording done → show thinking dots
             text = transcribe(wav, creds.api_key)
             if not text.strip():
@@ -349,12 +368,16 @@ class CodyFloat(QWidget):
             self._linger = LINGER_TICKS
             self._status = "Ctrl+Shift+Space to talk"
             if point is not None:
-                # Fly the blue Cody cursor to the target and hold the pointing
-                # pose — do NOT hijack the real OS mouse. Offset so the arrow
-                # tip lands on the target.
+                # `point` is physical screenshot pixels; Qt positions windows in
+                # logical pixels. Convert by the display scale, else the arrow
+                # lands ~scale× too far. Then offset so the tip hits the target.
+                # ponytail: primary-screen DPR; per-monitor scale if you go multi-DPI.
+                screen = QGuiApplication.primaryScreen()
+                dpr = screen.devicePixelRatio() if screen else 1.0
+                lx, ly = point[0] / dpr, point[1] / dpr
                 self._pointing = True
                 self._follow = False
-                self._target = QPointF(point[0] - 20, point[1] - 13)
+                self._target = QPointF(lx - 20, ly - 13)
                 QTimer.singleShot(HOLD_MS, self._resume_follow)
             else:
                 self._pointing = False
@@ -432,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
         def nativeEventFilter(self, eventType, message):
             return self._hot.native_event(eventType, message), 0
 
-    hot = HotkeyFilter(0, on_ptt=win.trigger_ptt, on_quit=app.quit)
+    hot = HotkeyFilter(0, on_ptt=lambda: win.trigger_ptt(hold=True), on_quit=app.quit)
     if not hot.register():
         logger.warning("hotkey failed — use tray menu")
     bridge = Bridge(hot)
