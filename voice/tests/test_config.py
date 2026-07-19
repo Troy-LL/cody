@@ -14,6 +14,7 @@ from voice.config import (
     ConfigMissing,
     is_usable_voice_id,
     load_voice_config,
+    save_openai_key,
 )
 
 
@@ -55,3 +56,12 @@ def test_placeholder_voice_id_detection() -> None:
     assert not is_usable_voice_id("")
     assert not is_usable_voice_id("<tl_voice_id>")
     assert not is_usable_voice_id("voice_id")
+
+
+def test_save_openai_key_preserves_fields(tmp_path: Path) -> None:
+    p = tmp_path / "config.local.json"
+    p.write_text(json.dumps({"api_key": "eleven", "provider": "elevenlabs"}), encoding="utf-8")
+    save_openai_key("sk-abc", path=p)
+    data = json.loads(p.read_text(encoding="utf-8"))
+    assert data["openai_api_key"] == "sk-abc"
+    assert data["api_key"] == "eleven"

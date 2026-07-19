@@ -130,3 +130,18 @@ def save_api_key(api_key: str, path: Path | None = None) -> None:
             "taglish": {"voice_id": "21m00Tcm4TlvDq8ikWAM"},
         }
     cfg_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def save_openai_key(api_key: str, path: Path | None = None) -> None:
+    """Write openai_api_key into gitignored config.local.json (keeps other fields)."""
+    cfg_path = path if path is not None else CONFIG_PATH
+    data: dict[str, Any] = {}
+    if cfg_path.is_file():
+        try:
+            loaded = json.loads(cfg_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data = loaded
+        except (OSError, json.JSONDecodeError):
+            data = {}
+    data["openai_api_key"] = str(api_key).strip()
+    cfg_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

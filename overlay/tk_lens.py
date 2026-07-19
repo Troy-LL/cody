@@ -92,7 +92,7 @@ class CodyApp:
         self.panel = tk.Toplevel(self.root)
         self.panel.title("Cody finds")
         self.panel.attributes("-topmost", True)
-        self.panel.geometry("320x440+24+24")
+        self.panel.geometry("320x480+24+24")
         self.panel.protocol("WM_DELETE_WINDOW", self.quit)
 
         frm = ttk.Frame(self.panel, padding=10)
@@ -113,6 +113,16 @@ class CodyApp:
         self.key_entry = ttk.Entry(key_row, textvariable=self.key_var, show="*")
         self.key_entry.pack(side="left", fill="x", expand=True)
         ttk.Button(key_row, text="Save", command=self._save_api_key).pack(side="left", padx=(6, 0))
+
+        openai_row = ttk.Frame(frm)
+        openai_row.pack(fill="x", pady=(0, 4))
+        ttk.Label(openai_row, text="OpenAI key").pack(anchor="w")
+        self.openai_key_var = tk.StringVar()
+        self.openai_key_entry = ttk.Entry(openai_row, textvariable=self.openai_key_var, show="*")
+        self.openai_key_entry.pack(side="left", fill="x", expand=True)
+        ttk.Button(openai_row, text="Save", command=self._save_openai_key).pack(side="left", padx=(6, 0))
+        self.openai_source = ttk.Label(openai_row, text="Using: none", foreground="#666")
+        self.openai_source.pack(anchor="w", pady=(2, 0))
 
         self.listbox = tk.Listbox(frm, height=12, activestyle="dotbox", font=("Segoe UI", 10))
         self.listbox.pack(fill="both", expand=True)
@@ -211,12 +221,13 @@ class CodyApp:
         self.root.after(150, self._boot)
 
     def _boot(self) -> None:
+        self._refresh_openai_status()
         self._refresh_voice_status()
         self._start_listener()
 
     def _typing_focus(self) -> bool:
         focus = self.panel.focus_get()
-        return focus in (self.key_entry,)
+        return focus in (self.key_entry, self.openai_key_entry)
 
     def _on_space(self, _event: tk.Event) -> None:
         if self._typing_focus():
@@ -243,6 +254,32 @@ class CodyApp:
         except Exception as e:
             logger.exception("save key failed")
             self._set_status(f"Could not save key: {e}")
+
+    def _save_openai_key(self) -> None:
+        key = self.openai_key_var.get().strip()
+        if not key:
+            self._set_status("Paste your OpenAI API key, then Save")
+            return
+        try:
+            from voice.config import save_openai_key
+
+            save_openai_key(key)
+            self.openai_key_var.set("")
+            self._refresh_openai_status()
+            self._set_status("OpenAI key saved")
+            logger.info("OpenAI api_key saved to config.local.json")
+        except Exception as e:
+            logger.exception("save openai key failed")
+            self._set_status(f"Could not save OpenAI key: {e}")
+
+    def _refresh_openai_status(self) -> None:
+        try:
+            from overlay.auth import resolve_openai
+
+            source = resolve_openai().source
+        except Exception:
+            source = "none"
+        self.openai_source.configure(text=f"Using: {source}")
 
     def _refresh_voice_status(self) -> None:
         try:
