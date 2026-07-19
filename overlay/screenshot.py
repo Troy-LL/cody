@@ -11,6 +11,7 @@ class Shot:
     image: Image.Image | None
     scale: float           # downscaled_px / screen_px
     origin: tuple[int, int]  # virtual-desktop top-left in screen coords
+    full: Image.Image | None = None  # full-res capture for pixel-accurate OCR
 
 
 def to_screen(shot: Shot, x: float, y: float) -> tuple[int, int]:
@@ -43,11 +44,13 @@ def capture(max_width: int = 1536) -> Shot:
         raw = sct.grab(mon)
         img = Image.frombytes("RGB", raw.size, raw.rgb)
     origin = (mon["left"], mon["top"])
+    full = img  # keep full-res for OCR precision
     scale = 1.0
+    small = img
     if img.width > max_width:
         scale = max_width / img.width
-        img = img.resize((max_width, round(img.height * scale)))
-    return Shot(image=img, scale=scale, origin=origin)
+        small = img.resize((max_width, round(img.height * scale)))
+    return Shot(image=small, scale=scale, origin=origin, full=full)
 
 
 if __name__ == "__main__":

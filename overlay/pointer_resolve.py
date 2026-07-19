@@ -92,12 +92,19 @@ def resolve(target, coords, boxes, shot: Shot):
 
 
 def boxes_for(shot: Shot) -> list[OcrBox]:
-    if shot.image is None:
+    # OCR the full-res capture when we have it — downscaled UI text (tiny tab
+    # labels on a hi-res / multi-monitor desktop) is unreadable to Tesseract,
+    # which forces bad model-coord fallbacks. Full-res is 1:1 with the screen.
+    full = getattr(shot, "full", None)
+    if full is not None:
+        img, inv = full, 1.0
+    elif shot.image is not None:
+        img, inv = shot.image, (1.0 / shot.scale if shot.scale else 1.0)
+    else:
         return []
-    inv = 1.0 / shot.scale if shot.scale else 1.0
     ox, oy = shot.origin
     out: list[OcrBox] = []
-    for text, x, y, w, h in ocr_boxes(shot.image):
+    for text, x, y, w, h in ocr_boxes(img):
         cx = ox + int((x + w / 2) * inv)
         cy = oy + int((y + h / 2) * inv)
         out.append(OcrBox(text=text, center=(cx, cy)))
